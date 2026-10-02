@@ -112,6 +112,32 @@ docs/kiro-evidence/milestone-commits.md
 
 ---
 
+## README Correction — architecture and project status
+
+**Date:** 2026-10-02
+**Status:** ✅ Complete
+**Git commit:** *(this commit)*
+**Branch:** main
+
+### Objective
+Correct five inaccuracies in the README identified during review.
+
+### Changes made (README.md only)
+1. Mermaid diagrams — removed stadium shapes `([...])`, diamond `{...}` in workflow, special chars (`·`, `/`), unquoted edge labels; unquoted subgraph IDs; renamed `E1–E5` node IDs to `A1–A5`
+2. Backend structure — replaced three-Lambda layout with correct single-Lambda structure (`handler.py`, `bedrock.py`, `gst.py`, etc.) plus explicit architecture note
+3. Antideploy claim — removed premature "Production frontend is deployed via Antideploy"; replaced with accurate statement about initial connectivity test
+4. Project Status — removed "Backend milestones are in progress"; replaced with accurate status table showing M1/config/README complete, M2+ not started
+5. Milestone history — added `cfd6e73` README commit row
+
+### Verification performed
+- `git diff --check` — clean
+- `git status` — only README.md modified
+- Mermaid block count: 4, all balanced
+- Secret scan — clean
+- No application code touched
+
+---
+
 ## Milestone 2 — (pending)
 
 *To be filled after implementation.*

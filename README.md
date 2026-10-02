@@ -26,18 +26,18 @@ INVOX treats the order message as the input, not a form. The seller describes th
 
 ```mermaid
 flowchart TD
-    A([Seller types order message]) --> B[INVOX frontend\nReact + Vite + Tailwind]
-    B --> C{AI Extraction\nAmazon Bedrock}
-    C --> D[Extracted data shown\nfor human review]
-    D --> E{Seller reviews\nand edits}
-    E --> F[Deterministic GST validation\nPython Lambda]
-    F --> G{GST mismatch?}
-    G -- Yes --> H[Flag shown to seller\nApplicable rate applied]
-    G -- No --> I[Server-side invoice calculation]
-    H --> I
-    I --> J[Invoice generated]
-    J --> K[UPI payment request / QR]
-    K --> L([PENDING / Simulated PAID status])
+    A["Seller types order message"] --> B["INVOX frontend"]
+    B --> C["AI Extraction via Amazon Bedrock"]
+    C --> D["Extracted data shown for human review"]
+    D --> E["Seller reviews and edits"]
+    E --> F["Deterministic GST validation in Python Lambda"]
+    F --> G{"GST mismatch?"}
+    G -- Yes --> H["Mismatch flagged to seller"]
+    H --> I["Server-side invoice calculation"]
+    G -- No --> I
+    I --> J["Invoice generated"]
+    J --> K["UPI payment request and QR"]
+    K --> L["PENDING or Simulated PAID status"]
 ```
 
 ---
@@ -59,21 +59,21 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Browser["Browser"]
-        FE["React + Vite + Tailwind\nOrder input · Invoice preview\nReview/edit UI"]
+    subgraph Browser
+        FE["React + Vite + Tailwind\nOrder input, Invoice preview, Review UI"]
     end
 
-    subgraph AWS["AWS"]
-        APIGW["API Gateway\nHTTPS · CORS · throttling"]
+    subgraph AWS
+        APIGW["API Gateway\nHTTPS, CORS, throttling"]
 
         subgraph Lambda["Python Lambda"]
             VAL["Input validation"]
-            BED["Bedrock call\nExtraction prompt"]
-            SCH["Schema validation\nof AI response"]
-            GST["Deterministic\nGST engine"]
-            CALC["Invoice\ncalculation"]
-            UPI["UPI request\ngeneration"]
-            DB["DynamoDB\npersistence"]
+            BED["Bedrock call"]
+            SCH["Schema validation of AI response"]
+            GST["Deterministic GST engine"]
+            CALC["Invoice calculation"]
+            UPI["UPI request generation"]
+            DB["DynamoDB persistence"]
         end
 
         APIGW --> VAL
@@ -85,12 +85,12 @@ flowchart LR
         UPI --> DB
     end
 
-    FE -->|HTTPS POST| APIGW
-    DB -->|Invoice response| APIGW
-    APIGW -->|JSON| FE
+    FE -->|"HTTPS POST"| APIGW
+    DB -->|"Invoice response"| APIGW
+    APIGW -->|"JSON"| FE
 ```
 
-> **Note:** The AWS backend (Lambda, API Gateway, Bedrock, DynamoDB) is planned and architecturally locked. The frontend foundation is implemented. Backend milestones are in progress.
+> **Note:** The AWS backend (Lambda, API Gateway, Bedrock, DynamoDB) is planned and architecturally locked. The frontend foundation is implemented. Backend implementation begins in Milestone 2.
 
 ---
 
@@ -99,11 +99,11 @@ flowchart LR
 ```mermaid
 flowchart TD
     subgraph AI["Amazon Bedrock — Language understanding"]
-        E1["Parse informal order text"]
-        E2["Identify customer and location"]
-        E3["Extract items, quantities, prices"]
-        E4["Identify stated GST rate"]
-        E5["Handle Hinglish and ambiguity"]
+        A1["Parse informal order text"]
+        A2["Identify customer and location"]
+        A3["Extract items, quantities, prices"]
+        A4["Identify stated GST rate"]
+        A5["Handle Hinglish and ambiguity"]
     end
 
     subgraph HUMAN["Seller — Human review"]
@@ -246,16 +246,25 @@ invox/
 invox/
 ├── src/                          # Frontend (as above, expanded)
 ├── backend/
-│   ├── functions/
-│   │   ├── extract/              # Bedrock extraction Lambda
-│   │   ├── invoice/              # Invoice calculation Lambda
-│   │   └── payment/              # UPI request Lambda
-│   ├── layers/
-│   │   └── gst_engine/           # Shared deterministic GST logic
-│   └── tests/                    # Pytest test suite
-├── template.yaml                 # AWS SAM template
+│   ├── src/
+│   │   ├── handler.py            # Lambda entry point
+│   │   ├── bedrock.py            # Bedrock extraction logic
+│   │   ├── gst.py                # Deterministic GST engine
+│   │   ├── invoice.py            # Invoice calculation
+│   │   ├── validation.py         # Input and AI-output validation
+│   │   ├── dynamodb.py           # DynamoDB persistence
+│   │   └── upi.py                # UPI request generation
+│   ├── tests/
+│   │   ├── test_gst.py
+│   │   ├── test_invoice.py
+│   │   ├── test_validation.py
+│   │   └── test_bedrock.py
+│   └── requirements.txt
+├── template.yaml                 # AWS SAM template (single Lambda)
 └── ...
 ```
+
+**Architecture note:** INVOX uses a single Python Lambda function. All backend logic — extraction orchestration, GST calculation, invoice generation, UPI request, and DynamoDB persistence — lives in one Lambda invoked through API Gateway. There are no separate micro-Lambdas.
 
 ---
 
@@ -385,6 +394,7 @@ No automatic commits, pushes, or deployments. Every Git action requires explicit
 |-----------|--------|-------------|
 | 1 | `818a505` | React + Vite + Tailwind scaffold + initial UI |
 | Config | `5ecde8c` | Kiro steering, hooks, evidence system, AGENTS.md |
+| Docs | `cfd6e73` | Project README |
 
 ---
 
@@ -396,7 +406,7 @@ This project is built for the **CloudBuild AI Virtual Build-a-Thon**.
 |------|------|
 | **Kiro** | Primary and exclusive coding IDE. Used for planning, spec creation, implementation, review, and verification across all milestones. |
 | **Amazon Q** | AWS-focused assistance: Lambda architecture, Bedrock prompt design, IAM policies, DynamoDB schema. |
-| **Antideploy** | Required deployment platform. Production frontend is deployed via Antideploy. |
+| **Antideploy** | Required deployment platform for this hackathon. An initial static deployment was used to verify connectivity during setup. Final INVOX deployment will be performed after the MVP is implemented and verified. |
 
 Kiro steering files (`.kiro/steering/`) are loaded into every session and enforce architecture, security, workflow, and UI/UX standards persistently without needing to re-explain them per session.
 
@@ -479,9 +489,16 @@ The goal is a focused, reliable, well-engineered MVP — not maximum feature cou
 
 ## Project Status
 
-**Active development — Milestone 1 complete.**
+**Active development — Milestone 1 complete. Backend not yet started.**
 
-The frontend foundation is implemented and running. Backend milestones are in progress following the milestone plan above.
+| Item | Status |
+|------|--------|
+| Milestone 1 — Frontend foundation | Complete (`818a505`) |
+| Kiro configuration layer | Complete (`5ecde8c`) |
+| README | Complete (`cfd6e73`) |
+| Milestone 2 — WhatsApp-style order input | Not started |
+| Backend implementation (M2–M9) | Planned |
+| Production deployment via Antideploy | Planned (Milestone 10) |
 
 ---
 

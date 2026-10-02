@@ -7,6 +7,8 @@ Only add entries after a milestone is genuinely implemented, verified, and pushe
 |-----------|-------------|--------|--------|------|--------|
 | 1 | React+Vite+Tailwind scaffold + initial UI | `818a505` | main | 2026-10-02 | ✅ Done |
 | — | Kiro steering, hooks, evidence system, AGENTS.md | `5ecde8c` | main | 2026-10-02 | ✅ Done |
+| — | Project README | `cfd6e73` | main | 2026-10-02 | ✅ Done |
+| — | README correction — architecture and project status | *(this commit)* | main | 2026-10-02 | ✅ Done |
 | 2 | WhatsApp-style order input | — | — | — | ⬜ Pending |
 | 3 | Bedrock AI extraction | — | — | — | ⬜ Pending |
 | 4 | Review/edit experience | — | — | — | ⬜ Pending |
