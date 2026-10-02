@@ -3,7 +3,9 @@ Tests for main Lambda handler (routing).
 """
 
 import json
+from unittest.mock import patch, Mock
 from src.app import lambda_handler
+from src.services.bedrock_client import BedrockResponse
 
 
 class TestLambdaHandler:
@@ -23,8 +25,16 @@ class TestLambdaHandler:
         assert body['status'] == 'ok'
         assert body['service'] == 'invox-api'
 
-    def test_extract_post(self):
-        """POST /extract routes to extract handler."""
+    @patch('src.handlers.extract._get_bedrock_client')
+    def test_extract_post(self, mock_get_client):
+        """POST /extract routes to extract handler with mocked Bedrock."""
+        mock_client = Mock()
+        mock_client.invoke_model.return_value = BedrockResponse(
+            success=True,
+            content='{"customer": "Acme", "location": "Pune", "items": [{"name": "mouse", "quantity": 10, "unit_price": 450}], "stated_gst_rate": 5}',
+        )
+        mock_get_client.return_value = mock_client
+        
         event = {
             'httpMethod': 'POST',
             'path': '/extract',
@@ -35,7 +45,7 @@ class TestLambdaHandler:
         
         assert response['statusCode'] == 200
         body = json.loads(response['body'])
-        assert body['source'] == 'placeholder'
+        assert body['source'] == 'bedrock'
 
     def test_unknown_route_returns_404(self):
         """Unknown route returns 404."""
@@ -92,8 +102,16 @@ class TestLambdaHandler:
         body = json.loads(response['body'])
         assert body['status'] == 'ok'
 
-    def test_http_api_format_extract(self):
+    @patch('src.handlers.extract._get_bedrock_client')
+    def test_http_api_format_extract(self, mock_get_client):
         """Extract works with HTTP API event format."""
+        mock_client = Mock()
+        mock_client.invoke_model.return_value = BedrockResponse(
+            success=True,
+            content='{"customer": "Acme", "location": "Pune", "items": [{"name": "mouse", "quantity": 10, "unit_price": 450}], "stated_gst_rate": 5}',
+        )
+        mock_get_client.return_value = mock_client
+        
         event = {
             'requestContext': {
                 'http': {

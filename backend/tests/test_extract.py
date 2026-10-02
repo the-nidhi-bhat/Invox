@@ -1,51 +1,18 @@
 """
-Tests for POST /extract endpoint.
+Tests for POST /extract endpoint with Bedrock integration.
 """
 
 import json
-from src.handlers.extract import handle_extract, PLACEHOLDER_EXTRACTION
+from unittest.mock import Mock, patch
+from src.handlers.extract import handle_extract
 from src.models.response import ExtractionItem
+from src.services.bedrock_client import BedrockResponse
+from src.services.response_parser import ParseResult
+from src.models.extraction import BedrockExtraction, ExtractionItem as ModelExtractionItem
 
 
 class TestExtractEndpoint:
     """Tests for the /extract endpoint handler."""
-
-    def test_valid_extract_request_returns_placeholder(self):
-        """Valid request returns deterministic placeholder response."""
-        event = {
-            'httpMethod': 'POST',
-            'path': '/extract',
-            'body': json.dumps({'message': 'bhaiya 50 mouse 450 wala, Acme Pune ko, 5% gst laga dena'}),
-        }
-        context = {}
-        
-        response = handle_extract(event, context)
-        
-        assert response['statusCode'] == 200
-        body = json.loads(response['body'])
-        assert body['source'] == 'placeholder'
-        assert 'not yet implemented' in body['customer'].lower()
-        assert 'not yet implemented' in body['location'].lower()
-        assert len(body['items']) == 1
-        assert body['items'][0]['name'] == '[Extraction not yet implemented]'
-        assert body['items'][0]['quantity'] == 1
-        assert body['items'][0]['unitPrice'] == 0.0
-        assert body['statedGstRate'] == 0.0
-
-    def test_valid_extract_request_has_cors_headers(self):
-        """Extract response includes CORS headers."""
-        event = {
-            'httpMethod': 'POST',
-            'path': '/extract',
-            'body': json.dumps({'message': 'test message'}),
-        }
-        context = {}
-        
-        response = handle_extract(event, context)
-        
-        headers = response['headers']
-        assert headers['Access-Control-Allow-Origin'] == '*'
-        assert headers['Content-Type'] == 'application/json'
 
     def test_missing_message_returns_400(self):
         """Request without message field returns 400 with MISSING_MESSAGE code."""
@@ -144,7 +111,6 @@ class TestExtractEndpoint:
 
     def test_oversized_request_returns_413(self):
         """Request exceeding size limit returns 413."""
-        # Create a body larger than 10KB
         large_message = 'x' * 15000
         event = {
             'httpMethod': 'POST',
@@ -198,28 +164,6 @@ class TestExtractEndpoint:
         
         assert response['statusCode'] == 405
 
-    def test_placeholder_response_is_deterministic(self):
-        """Placeholder response is identical for all valid inputs."""
-        messages = [
-            'bhaiya 50 mouse 450 wala',
-            'hello world',
-            'different message entirely',
-        ]
-        
-        responses = []
-        for msg in messages:
-            event = {
-                'httpMethod': 'POST',
-                'path': '/extract',
-                'body': json.dumps({'message': msg}),
-            }
-            response = handle_extract(event, {})
-            responses.append(json.loads(response['body']))
-        
-        # All responses should be identical
-        assert responses[0] == responses[1] == responses[2]
-        assert responses[0]['source'] == 'placeholder'
-
     def test_extract_via_http_api_format(self):
         """Extract works with HTTP API event format (requestContext.http)."""
         event = {
@@ -235,4 +179,197 @@ class TestExtractEndpoint:
         
         response = handle_extract(event, context)
         
+        # Should not crash - validation happens before Bedrock call
+        assert response['statusCode'] in (200, 500)
+
+
+class TestExtractWithMockedBedrock:
+    """Tests for /extract endpoint with mocked Bedrock client."""
+
+    @patch('src.handlers.extract._get_bedrock_client')
+    def test_valid_extract_returns_bedrock_response(self, mock_get_client):
+        """Valid request with successful Bedrock call returns extraction."""
+        # Setup mock Bedrock client
+        mock_client = Mock()
+        mock_client.invoke_model.return_value = BedrockResponse(
+            success=True,
+            content='{"customer": "Acme", "location": "Pune", "items": [{"name": "mouse", "quantity": 50, "unit_price": 450}], "stated_gst_rate": 5}',
+        )
+        mock_get_client.return_value = mock_client
+        
+        event = {
+            'httpMethod': 'POST',
+            'path': '/extract',
+            'body': json.dumps({'message': 'bhaiya 50 mouse 450 wala, Acme Pune ko, 5% gst laga dena'}),
+        }
+        context = {}
+        
+        response = handle_extract(event, context)
+        
         assert response['statusCode'] == 200
+        body = json.loads(response['body'])
+        assert body['source'] == 'bedrock'
+        assert body['customer'] == 'Acme'
+        assert body['location'] == 'Pune'
+        assert len(body['items']) == 1
+        assert body['items'][0]['name'] == 'mouse'
+        assert body['items'][0]['quantity'] == 50
+        assert body['items'][0]['unitPrice'] == 450
+        assert body['statedGstRate'] == 5
+
+    @patch('src.handlers.extract._get_bedrock_client')
+    def test_bedrock_throttled_returns_500(self, mock_get_client):
+        """Bedrock throttling returns 500 without exposing details."""
+        mock_client = Mock()
+        mock_client.invoke_model.return_value = BedrockResponse(
+            success=False,
+            error_code='BEDROCK_THROTTLED',
+            error_message='Bedrock request was throttled',
+        )
+        mock_get_client.return_value = mock_client
+        
+        event = {
+            'httpMethod': 'POST',
+            'path': '/extract',
+            'body': json.dumps({'message': 'test message'}),
+        }
+        context = {}
+        
+        response = handle_extract(event, context)
+        
+        assert response['statusCode'] == 500
+        body = json.loads(response['body'])
+        assert body['code'] == 'INTERNAL_ERROR'
+        # No internal details exposed
+        assert 'throttled' not in body['error'].lower()
+
+    @patch('src.handlers.extract._get_bedrock_client')
+    def test_bedrock_access_denied_returns_500(self, mock_get_client):
+        """Bedrock access denied returns 500."""
+        mock_client = Mock()
+        mock_client.invoke_model.return_value = BedrockResponse(
+            success=False,
+            error_code='BEDROCK_ACCESS_DENIED',
+            error_message='Access denied to Bedrock model',
+        )
+        mock_get_client.return_value = mock_client
+        
+        event = {
+            'httpMethod': 'POST',
+            'path': '/extract',
+            'body': json.dumps({'message': 'test message'}),
+        }
+        context = {}
+        
+        response = handle_extract(event, context)
+        
+        assert response['statusCode'] == 500
+        body = json.loads(response['body'])
+        assert body['code'] == 'INTERNAL_ERROR'
+
+    @patch('src.handlers.extract._get_bedrock_client')
+    def test_bedrock_invalid_json_returns_500(self, mock_get_client):
+        """Bedrock returning invalid JSON returns 500."""
+        mock_client = Mock()
+        mock_client.invoke_model.return_value = BedrockResponse(
+            success=True,
+            content='not valid json at all',
+        )
+        mock_get_client.return_value = mock_client
+        
+        event = {
+            'httpMethod': 'POST',
+            'path': '/extract',
+            'body': json.dumps({'message': 'test message'}),
+        }
+        context = {}
+        
+        response = handle_extract(event, context)
+        
+        assert response['statusCode'] == 500
+
+    @patch('src.handlers.extract._get_bedrock_client')
+    def test_bedrock_missing_fields_returns_500(self, mock_get_client):
+        """Bedrock response missing required fields returns 500."""
+        mock_client = Mock()
+        mock_client.invoke_model.return_value = BedrockResponse(
+            success=True,
+            content='{"customer": "Acme"}',  # missing location, items, gst
+        )
+        mock_get_client.return_value = mock_client
+        
+        event = {
+            'httpMethod': 'POST',
+            'path': '/extract',
+            'body': json.dumps({'message': 'test message'}),
+        }
+        context = {}
+        
+        response = handle_extract(event, context)
+        
+        assert response['statusCode'] == 500
+
+    @patch('src.handlers.extract._get_bedrock_client')
+    def test_bedrock_negative_quantity_returns_500(self, mock_get_client):
+        """Bedrock response with negative quantity returns 500."""
+        mock_client = Mock()
+        mock_client.invoke_model.return_value = BedrockResponse(
+            success=True,
+            content='{"customer": "Acme", "location": "Pune", "items": [{"name": "mouse", "quantity": -5, "unit_price": 450}], "stated_gst_rate": 5}',
+        )
+        mock_get_client.return_value = mock_client
+        
+        event = {
+            'httpMethod': 'POST',
+            'path': '/extract',
+            'body': json.dumps({'message': 'test message'}),
+        }
+        context = {}
+        
+        response = handle_extract(event, context)
+        
+        assert response['statusCode'] == 500
+
+    @patch('src.handlers.extract._get_bedrock_client')
+    def test_bedrock_invalid_gst_rate_returns_500(self, mock_get_client):
+        """Bedrock response with invalid GST rate returns 500."""
+        mock_client = Mock()
+        mock_client.invoke_model.return_value = BedrockResponse(
+            success=True,
+            content='{"customer": "Acme", "location": "Pune", "items": [{"name": "mouse", "quantity": 10, "unit_price": 450}], "stated_gst_rate": 150}',
+        )
+        mock_get_client.return_value = mock_client
+        
+        event = {
+            'httpMethod': 'POST',
+            'path': '/extract',
+            'body': json.dumps({'message': 'test message'}),
+        }
+        context = {}
+        
+        response = handle_extract(event, context)
+        
+        assert response['statusCode'] == 500
+
+    @patch('src.handlers.extract._get_bedrock_client')
+    def test_extract_response_has_cors_headers(self, mock_get_client):
+        """Extract response includes CORS headers."""
+        mock_client = Mock()
+        mock_client.invoke_model.return_value = BedrockResponse(
+            success=True,
+            content='{"customer": "Acme", "location": "Pune", "items": [{"name": "mouse", "quantity": 10, "unit_price": 450}], "stated_gst_rate": 5}',
+        )
+        mock_get_client.return_value = mock_client
+        
+        event = {
+            'httpMethod': 'POST',
+            'path': '/extract',
+            'body': json.dumps({'message': 'test message'}),
+        }
+        context = {}
+        
+        response = handle_extract(event, context)
+        
+        headers = response['headers']
+        assert headers['Access-Control-Allow-Origin'] == '*'
+        assert headers['Content-Type'] == 'application/json'

@@ -182,11 +182,13 @@ def _parse_item(item_data: dict) -> Optional[ExtractionItem]:
         except (ValueError, TypeError):
             unit_price = None
     
-    # Only create item if we have at least a name
+    # Only create item if we have at least a name AND valid quantity
     if name and name.strip():
+        if quantity is None or quantity <= 0:
+            return None
         return ExtractionItem(
             name=name.strip(),
-            quantity=quantity if quantity is not None and quantity > 0 else 1,
+            quantity=quantity,
             unit_price=unit_price if unit_price is not None and unit_price >= 0 else 0.0,
         )
     
