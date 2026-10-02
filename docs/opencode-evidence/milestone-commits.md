@@ -6,7 +6,7 @@ Historical Kiro milestones are recorded in `docs/kiro-evidence/milestone-commits
 
 | Milestone | Description | Commit | Branch | Date | Status |
 |-----------|-------------|--------|--------|------|--------|
-| 3 | Bedrock AI extraction | — | — | — | ⬜ Pending |
+| 3 | Python Lambda + API Gateway foundation | — | — | — | ⬜ Pending |
 | 4 | Review/edit experience | — | — | — | ⬜ Pending |
 | 5 | Deterministic GST engine | — | — | — | ⬜ Pending |
 | 6 | Invoice generation | — | — | — | ⬜ Pending |

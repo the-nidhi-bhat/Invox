@@ -1,0 +1,3 @@
+# Production dependencies for INVOX backend
+# Minimal — only standard library used in M3
+# Future milestones will add boto3, etc.

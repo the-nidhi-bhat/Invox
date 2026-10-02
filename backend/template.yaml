@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: INVOX API — M3 Lambda + API Gateway foundation
+
+Globals:
+  Function:
+    Runtime: python3.11
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        LOG_LEVEL: INFO
+    Tracing: Active
+
+Resources:
+  # API Gateway
+  InvoxApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowOrigin: "'*'"
+        AllowHeaders: "'Content-Type'"
+        AllowMethods: "'GET,POST,OPTIONS'"
+        MaxAge: "'86400'"
+      Auth:
+        DefaultAuthorizer: NONE
+        Authorizers: {}
+      EndpointConfiguration: REGIONAL
+
+  # Lambda Function — single function for all endpoints
+  InvoxFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: invox-api
+      Handler: src.app.lambda_handler
+      CodeUri: src/
+      Policies:
+        # Least privilege: no Bedrock, no DynamoDB in M3
+        # Only basic Lambda execution permissions
+        - AWSLambdaBasicExecutionRole
+      Events:
+        HealthGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref InvoxApi
+            Path: /health
+            Method: GET
+        ExtractPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref InvoxApi
+            Path: /extract
+            Method: POST
+        # Catch-all for other routes (returns 404)
+        CatchAll:
+          Type: Api
+          Properties:
+            RestApiId: !Ref InvoxApi
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${InvoxApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt InvoxFunction.Arn

@@ -8,6 +8,13 @@ build/
 # Vite cache
 .vite/
 
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
 # Environment variables — never commit secrets
 .env
 .env.local

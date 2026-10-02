@@ -7,6 +7,9 @@ It is distinct from the historical Kiro contributions recorded in `docs/kiro-evi
 
 ## How OpenCode was used for planning
 
+- M3: OpenCode analyzed existing M2 frontend contract (mockExtractor.js, OrderComposer.jsx, App.jsx) to design compatible backend API
+- M3: OpenCode created implementation plan covering backend structure, API design, validation, SAM template, and testing strategy
+
 *To be filled as milestones progress.*
 
 ---
@@ -27,6 +30,7 @@ It is distinct from the historical Kiro contributions recorded in `docs/kiro-evi
 | Milestone | What OpenCode implemented | Result |
 |-----------|---------------------------|--------|
 | — | Evidence/documentation structure setup | ✅ Created |
+| 3 | Python Lambda + API Gateway foundation (health, extract, validation, SAM, 56 tests) | ✅ Tests pass, SAM valid, frontend build clean |
 
 *Update after each milestone.*
 
