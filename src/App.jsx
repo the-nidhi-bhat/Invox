@@ -10,23 +10,27 @@ import EmptyState from './components/EmptyState.jsx'
  *
  * UI state machine:
  *
- *   'idle'        — empty state, waiting for input
- *   'loading'     — extraction in progress (mock or future real API)
- *   'review'      — extraction complete, seller reviews/edits extracted fields
- *   'calculating' — deterministic GST calculation in progress
- *   'confirmed'   — GST calculated, seller sees final breakdown
- *   'error'       — extraction/calculation failed
+ *   'idle'            — empty state, waiting for input
+ *   'loading'         — extraction in progress (mock or future real API)
+ *   'review'          — extraction complete, seller reviews/edits extracted fields
+ *   'calculating'     — deterministic GST calculation in progress
+ *   'confirmed'       — GST calculated, seller sees final breakdown
+ *   'generating'      — invoice generation in progress
+ *   'invoice'         — invoice generated, shows final invoice
+ *   'error'           — extraction/calculation/generation failed
  *
- * M6 adds: confirmed → deterministic GST calculation → confirmed with breakdown
+ * M7 adds: confirmed → invoice generation → invoice
  */
 export default function App() {
-  const [uiState, setUiState] = useState('idle')  // 'idle' | 'loading' | 'review' | 'calculating' | 'confirmed' | 'error'
+  const [uiState, setUiState] = useState('idle')  // 'idle' | 'loading' | 'review' | 'calculating' | 'confirmed' | 'generating' | 'invoice' | 'error'
   const [submittedMessage, setSubmittedMessage] = useState('')
   const [extraction, setExtraction] = useState(null)
   const [extractionError, setExtractionError] = useState('')
   const [confirmedOrder, setConfirmedOrder] = useState(null)
   const [gstResult, setGstResult] = useState(null)
   const [gstError, setGstError] = useState('')
+  const [invoice, setInvoice] = useState(null)
+  const [invoiceError, setInvoiceError] = useState('')
 
   function handleExtractionStart() {
     setUiState('loading')
@@ -35,6 +39,8 @@ export default function App() {
     setConfirmedOrder(null)
     setGstResult(null)
     setGstError('')
+    setInvoice(null)
+    setInvoiceError('')
   }
 
   function handleExtractionSuccess(result, message) {
@@ -83,6 +89,43 @@ export default function App() {
     }
   }
 
+  async function handleGenerateInvoice() {
+    if (!gstResult || !confirmedOrder) {
+      setInvoiceError('Missing GST calculation or confirmed order')
+      setUiState('error')
+      return
+    }
+
+    setUiState('generating')
+    setInvoiceError('')
+
+    try {
+      const response = await fetch('/invoice/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: confirmedOrder.customer,
+          customer_location: confirmedOrder.location,
+          items: confirmedOrder.items,
+          stated_gst_rate: confirmedOrder.statedGstRate,
+          gst_calculation: gstResult,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Invoice generation failed')
+      }
+
+      setInvoice(data)
+      setUiState('invoice')
+    } catch (err) {
+      setInvoiceError(err?.message ?? 'Invoice generation failed. Please try again.')
+      setUiState('error')
+    }
+  }
+
   function handleReset() {
     setUiState('idle')
     setSubmittedMessage('')
@@ -91,6 +134,8 @@ export default function App() {
     setConfirmedOrder(null)
     setGstResult(null)
     setGstError('')
+    setInvoice(null)
+    setInvoiceError('')
   }
 
   // Determine what to render in the right panel
@@ -245,6 +290,184 @@ export default function App() {
             </div>
           </div>
         )
+      case 'generating':
+        return (
+          <div className="rounded-2xl bg-gray-900 border border-yellow-800/40 p-8 flex flex-col items-center gap-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
+              <svg className="w-6 h-6 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold text-sm">Generating Invoice</h3>
+              <p className="text-gray-500 text-xs mt-1 max-w-[280px]">
+                Creating invoice from GST calculation…
+              </p>
+            </div>
+          </div>
+        )
+      case 'invoice':
+        return (
+          <div className="flex flex-col gap-4">
+            {invoice?.gst_mismatch && (
+              <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 flex items-start gap-3">
+                <svg className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-amber-400">GST rate mismatch detected</p>
+                  <p className="text-xs text-amber-300 mt-1">
+                    Message stated <span className="font-semibold">{invoice.stated_gst_rate ?? 'no'}%</span> GST,
+                    but deterministic rules determine <span className="font-semibold">{invoice.determined_gst_rate}%</span>.
+                    Calculation uses the <span className="font-semibold">determined rate</span>.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-2xl bg-gray-900 border border-green-800/40 p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-white font-semibold text-sm">Invoice Generated</h3>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Invoice <span className="font-mono">{invoice?.invoice_number}</span> created on {invoice?.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString('en-IN') : ''}
+                  </p>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded border border-green-700 text-green-400 shrink-0">
+                  {invoice?.tax_type === 'intra_state' ? 'Intra-state (CGST+SGST)' : 'Inter-state (IGST)'}
+                </span>
+              </div>
+
+              <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Seller</p>
+                  <p className="text-xs text-gray-400">{invoice?.seller?.name}</p>
+                </div>
+                <div className="text-xs text-gray-500">{invoice?.seller?.address}</div>
+                <div className="text-xs text-gray-500">State: {invoice?.seller?.state}</div>
+                <div className="text-xs text-gray-500">{invoice?.seller?.gstin}</div>
+              </div>
+
+              {invoice?.customer?.name && (
+                <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Customer</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-white">{invoice.customer.name}</span>
+                  </div>
+                  {invoice.customer.location && (
+                    <div className="text-xs text-gray-500">Location: {invoice.customer.location}</div>
+                  )}
+                </div>
+              )}
+
+              <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Items</p>
+                <div className="flex flex-col gap-2">
+                  {invoice?.items?.map((item, idx) => (
+                    <div key={idx} className="rounded-lg bg-gray-800/50 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white">{item.name}</p>
+                        <p className="text-xs text-gray-500">
+                          Qty: {item.quantity} × ₹{item.unit_price}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-right">
+                        <div>
+                          <p className="text-gray-500">Subtotal</p>
+                          <p className="text-white">₹{item.subtotal.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">GST ({item.gst_rate}%)</p>
+                          <p className="text-white">₹{item.gst_amount.toFixed(2)}</p>
+                        </div>
+                        {item.tax_type === 'intra_state' ? (
+                          <>
+                            <div>
+                              <p className="text-gray-500">CGST ({item.cgst_rate}%)</p>
+                              <p className="text-white">₹{item.cgst_amount.toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">SGST ({item.sgst_rate}%)</p>
+                              <p className="text-white">₹{item.sgst_amount.toFixed(2)}</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="sm:col-span-2">
+                              <p className="text-gray-500">IGST ({item.igst_rate}%)</p>
+                              <p className="text-white">₹{item.igst_amount.toFixed(2)}</p>
+                            </div>
+                            <div className="sm:hidden" />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-2">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Totals</p>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                  <dt className="text-gray-500">Subtotal</dt>
+                  <dd className="text-gray-200 text-right">₹{invoice?.subtotal?.toFixed(2)}</dd>
+                  <dt className="text-gray-500">Total GST</dt>
+                  <dd className="text-gray-200 text-right">₹{invoice?.total_gst_amount?.toFixed(2)}</dd>
+                  {invoice?.tax_type === 'intra_state' ? (
+                    <>
+                      <dt className="text-gray-500">CGST</dt>
+                      <dd className="text-gray-200 text-right">₹{invoice?.total_cgst?.toFixed(2)}</dd>
+                      <dt className="text-gray-500">SGST</dt>
+                      <dd className="text-gray-200 text-right">₹{invoice?.total_sgst?.toFixed(2)}</dd>
+                    </>
+                  ) : (
+                    <>
+                      <dt className="text-gray-500">IGST</dt>
+                      <dd className="text-gray-200 text-right">₹{invoice?.total_igst?.toFixed(2)}</dd>
+                    </>
+                  )}
+                  <dt className="text-gray-500 font-semibold">Grand Total</dt>
+                  <dd className="text-white font-semibold text-right">₹{invoice?.grand_total?.toFixed(2)}</dd>
+                </dl>
+              </div>
+
+              {invoice?.gst_mismatch && (
+                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-center">
+                  <p className="text-xs text-amber-400">
+                    GST rate mismatch: stated {invoice.stated_gst_rate}% → applied {invoice.determined_gst_rate}%
+                  </p>
+                </div>
+              )}
+
+              <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-center">
+                <p className="text-xs text-green-400">
+                  Calculation uses deterministic rules. AI proposed the extraction; rules decided the tax.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-gray-700 text-gray-400 text-sm font-medium
+                             hover:border-gray-600 hover:text-gray-300 transition
+                             focus:outline-none focus:ring-2 focus:ring-gray-600"
+                >
+                  Start new order
+                </button>
+                <button
+                  type="button"
+                  disabled={true}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-gray-700 text-gray-500 text-sm font-medium
+                             cursor-not-allowed"
+                >
+                  Continue to Payment
+                </button>
+              </div>
+            </div>
+          </div>
+        )
       case 'error':
         return (
           <div className="rounded-2xl bg-gray-900 border border-red-800/40 p-8 flex flex-col items-center gap-4 text-center">
@@ -255,10 +478,10 @@ export default function App() {
             </div>
             <div>
               <h3 className="text-white font-semibold text-sm">
-                {gstError ? 'GST calculation failed' : 'Could not process order'}
+                {invoiceError ? 'Invoice generation failed' : gstError ? 'GST calculation failed' : 'Could not process order'}
               </h3>
               <p className="text-gray-400 text-xs mt-1 max-w-[280px] leading-relaxed">
-                {gstError || extractionError}
+                {invoiceError || gstError || extractionError}
               </p>
             </div>
             <button
@@ -325,13 +548,29 @@ export default function App() {
  */
 function WorkflowSteps({ currentState }) {
   const steps = [
-    { id: 'idle',      label: 'Enter order' },
-    { id: 'loading',   label: 'Extract' },
-    { id: 'review',    label: 'Review' },
-    { id: 'confirmed', label: 'Invoice' },
+    { id: 'idle',       label: 'Enter order' },
+    { id: 'loading',    label: 'Extract' },
+    { id: 'review',     label: 'Review' },
+    { id: 'calculating',label: 'GST' },
+    { id: 'generating', label: 'Invoice' },
+    { id: 'invoice',    label: 'Done' },
+    { id: 'confirmed',  label: 'Invoice' }, // legacy support
   ]
 
-  const activeIndex = steps.findIndex(s => s.id === currentState)
+  // Map legacy state to current state for workflow display
+  const stateMap = {
+    'confirmed': 'invoice',
+    'calculating': 'calculating',
+    'generating': 'generating',
+    'invoice': 'invoice',
+    'review': 'review',
+    'loading': 'loading',
+    'idle': 'idle',
+    'error': 'review', // show up to review on error
+  }
+
+  const displayState = stateMap[currentState] || currentState
+  const activeIndex = steps.findIndex(s => s.id === displayState)
 
   return (
     <div className="flex items-center gap-0" aria-label="Workflow progress" role="list">

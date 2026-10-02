@@ -6,6 +6,7 @@ Supports:
 - GET /health
 - POST /extract
 - POST /gst/calculate
+- POST /invoice/generate
 - OPTIONS (CORS preflight)
 """
 
@@ -13,6 +14,7 @@ import json
 from src.handlers.health import handle_health
 from src.handlers.extract import handle_extract
 from src.handlers.gst import handle_gst_calculate
+from src.handlers.invoice import handle_invoice_generate
 from src.utils.responses import (
     error_not_found,
     error_method_not_allowed,
@@ -59,6 +61,12 @@ def route_request(event: dict, context: object) -> dict:
             return handle_health(event, context)
         return error_method_not_allowed()
     
+    # Route to handlers
+    if path == '/health':
+        if http_method == 'GET':
+            return handle_health(event, context)
+        return error_method_not_allowed()
+    
     if path == '/extract':
         if http_method == 'POST':
             return handle_extract(event, context)
@@ -68,7 +76,12 @@ def route_request(event: dict, context: object) -> dict:
         if http_method == 'POST':
             return handle_gst_calculate(event, context)
         return error_method_not_allowed()
-
+    
+    if path == '/invoice/generate':
+        if http_method == 'POST':
+            return handle_invoice_generate(event, context)
+        return error_method_not_allowed()
+    
     # Not found
     return error_not_found('NOT_FOUND', f'Endpoint not found: {http_method} {path}')
 
