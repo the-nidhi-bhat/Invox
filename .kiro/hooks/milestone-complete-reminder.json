@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Milestone Completion Reminder",
+      "trigger": "Stop",
+      "action": {
+        "type": "agent",
+        "prompt": "A Kiro session has just stopped. Before the next session begins, remind Nidhi of the INVOX milestone discipline:\n\n1. If a milestone was just completed: run `npm run build` (frontend) or `pytest` (backend) one final time to confirm everything is clean.\n2. Run `git status` and `git diff` to review what changed.\n3. Check for secrets in the diff.\n4. If the milestone is verified and Nidhi approves: commit with a conventional commit message, push, and update docs/kiro-evidence/build-journal.md and docs/kiro-evidence/milestone-commits.md.\n5. Capture any useful Kiro evidence screenshots NOW, before the milestone context is gone.\n6. Only then STOP and wait for Nidhi's instruction for the next milestone.\n\nDo NOT automatically commit, push, or deploy."
+      }
+    }
+  ]
+}
