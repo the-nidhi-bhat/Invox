@@ -68,6 +68,50 @@ src/components/EmptyState.jsx
 
 ---
 
+## Configuration Layer — Kiro steering, hooks, evidence system, AGENTS.md
+
+**Date:** 2026-10-02  
+**Status:** ✅ Complete  
+**Git commit:** `5ecde8c`  
+**Branch:** main  
+
+### Objective
+Transform the Kiro workspace into the INVOX Master Engineering + Hackathon Command Center — configuration only, no application code changes.
+
+### What Kiro was asked to do
+- Inspect existing `.kiro` config (none existed)
+- Create 7 steering files covering: project identity, architecture, workflow, security, UI/UX, GST/financial, hackathon rules
+- Create 2 hooks: secret detection on save, milestone completion reminder
+- Create `AGENTS.md` at project root
+- Create `docs/kiro-evidence/` with build journal, milestone-commit map, contribution summary
+
+### Files changed
+```
+.kiro/hooks/milestone-complete-reminder.json
+.kiro/hooks/secret-detection.json
+.kiro/steering/architecture.md
+.kiro/steering/gst-financial.md
+.kiro/steering/hackathon.md
+.kiro/steering/project.md
+.kiro/steering/security.md
+.kiro/steering/ui-ux.md
+.kiro/steering/workflow.md
+AGENTS.md
+docs/kiro-evidence/build-journal.md
+docs/kiro-evidence/kiro-contribution-summary.md
+docs/kiro-evidence/milestone-commits.md
+```
+
+### Verification performed
+- `git diff --stat` confirmed: 13 new files, 759 insertions, 0 deletions
+- Zero changes to application code (src/, index.html, package.json, configs)
+- No existing M1 code modified
+
+### Push result
+✅ Pushed to https://github.com/the-nidhi-bhat/Invox main (`818a505..5ecde8c`)
+
+---
+
 ## Milestone 2 — (pending)
 
 *To be filled after implementation.*
