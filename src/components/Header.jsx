@@ -21,7 +21,6 @@ export default function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500 hidden sm:block">CloudBuild AI Virtual Build-a-Thon</span>
           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Live" />
         </div>
       </div>

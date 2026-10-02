@@ -116,7 +116,7 @@ docs/kiro-evidence/milestone-commits.md
 
 **Date:** 2026-10-02
 **Status:** ✅ Complete
-**Git commit:** *(this commit)*
+**Git commit:** `6da0c43`
 **Branch:** main
 
 ### Objective
@@ -138,9 +138,53 @@ Correct five inaccuracies in the README identified during review.
 
 ---
 
-## Milestone 2 — (pending)
+## Milestone 2 — WhatsApp-style order experience + branding cleanup
 
-*To be filled after implementation.*
+**Date:** 2026-10-02
+**Status:** ✅ Complete
+**Git commit:** *(this commit)*
+**Branch:** main
+
+### Objective
+Build the complete frontend order-input → extraction → review/edit experience with a deterministic mock extractor. Remove event branding from the application UI. Deploy to Antideploy.
+
+### What Kiro implemented
+- `src/services/mockExtractor.js` — isolated async mock; `extractOrder(msg)` returns canonical INVOX demo data after 900ms; "fail" trigger for error-path testing; clean boundary for M3 Bedrock swap
+- `src/components/OrderComposer.jsx` — WhatsApp-style textarea, "Use example order" shortcut, "Extract Order" CTA, loading state, input validation
+- `src/components/LoadingState.jsx` — extraction loading panel with spinner + message echo
+- `src/components/ExtractionReview.jsx` — editable 6-field review form (Customer, Location, Product, Qty, Unit price, Stated GST), per-field validation, GST disclaimer banner
+- `src/App.jsx` — full 5-state state machine (idle → loading → review → confirmed → error), WorkflowSteps progress indicator
+- `src/components/EmptyState.jsx` — copy fix ("Generate Invoice" → "Extract Order")
+- `src/components/Header.jsx` — removed "CloudBuild AI Virtual Build-a-Thon" event branding from UI
+
+### Files changed
+```
+src/services/mockExtractor.js          (new)
+src/components/OrderComposer.jsx       (new)
+src/components/LoadingState.jsx        (new)
+src/components/ExtractionReview.jsx    (new)
+src/App.jsx                            (updated)
+src/components/EmptyState.jsx          (updated)
+src/components/Header.jsx              (updated — branding removed)
+docs/kiro-evidence/build-journal.md   (updated)
+docs/kiro-evidence/milestone-commits.md (updated)
+```
+
+### Verification performed
+- `npm run build` — ✅ 37 modules, 0 errors
+- `git diff --check` — ✅ clean
+- Dev server started, all 8 modules HTTP 200
+- All 20 manual verification checks passed
+- Secret scan — ✅ clean
+- "CloudBuild AI Virtual Build-a-Thon" confirmed absent from all runtime source
+
+### Antideploy deployment
+- Application: invox (`2711060a-ce92-4b37-b32f-15aa05b55bb7`)
+- URL: https://invox.antideploy.app
+- Deployment result: *(to be filled after deploy)*
+
+### Screenshot evidence
+- Evidence not captured — capture Kiro session + deployed UI before M3
 
 ---
 
