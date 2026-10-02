@@ -309,17 +309,18 @@ src/components/ExtractionReview.jsx    # Complete rewrite for multiple items, op
 ### Build result
 ✅ Clean — all tests pass, frontend builds
 
+### Antideploy deployment
+- Frontend deployment to https://invox.antideploy.app: **Pending manual trigger**
+- Antideploy auto-deploy on push did not trigger (asset hash unchanged: `index-CJgPDAWn.js`)
+- Antideploy token in `~/.antideploy/config.json` is single-use and spent — requires re-authentication via Antideploy dashboard
+- Manual deployment via Antideploy dashboard required to update live frontend with M5 changes
+- Antideploy account: the.nidhi.bhat@gmail.com
+
 ### Notes
 - Implemented by OpenCode (Kiro unavailable due to usage limit)
 - M2/M4 frontend/backend contracts maintained
 - M5 is purely the human review/edit layer — no GST calculation, no invoice generation, no payments
 - Granular Git history: 1 meaningful commit for M5 implementation
-
----
-
-## Milestone 6 — (pending)
-
-*To be filled after implementation.*
 
 ---
 
