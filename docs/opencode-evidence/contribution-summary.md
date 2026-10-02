@@ -9,6 +9,8 @@ It is distinct from the historical Kiro contributions recorded in `docs/kiro-evi
 
 - M3: OpenCode analyzed existing M2 frontend contract (mockExtractor.js, OrderComposer.jsx, App.jsx) to design compatible backend API
 - M3: OpenCode created implementation plan covering backend structure, API design, validation, SAM template, and testing strategy
+- M4: OpenCode designed Bedrock integration architecture: client isolation, prompt engineering, response parsing, schema validation, failure handling, IAM least-privilege
+- M5: OpenCode designed human review layer: multi-item support, optional fields, human-edited tracking, validation UX
 
 *To be filled as milestones progress.*
 
@@ -31,12 +33,21 @@ It is distinct from the historical Kiro contributions recorded in `docs/kiro-evi
 |-----------|---------------------------|--------|
 | — | Evidence/documentation structure setup | ✅ Created |
 | 3 | Python Lambda + API Gateway foundation (health, extract, validation, SAM, 56 tests) | ✅ Tests pass, SAM valid, frontend build clean |
+| 4 | Bedrock integration: client, prompt, parser, schema, /extract integration, 61 tests | ✅ Tests pass, SAM valid, frontend build clean |
+| 5 | Human review layer: multi-item, optional fields, edited badges, validation UX | ✅ Tests pass, frontend build clean |
 
 *Update after each milestone.*
 
 ---
 
 ## How OpenCode helped test/review/debug
+
+- M4: Created comprehensive test suite with mocked Bedrock client (20 new integration tests)
+- M4: Tests cover valid extraction, throttling, access denied, invalid JSON, missing fields, negative qty, invalid GST
+- M4: All 61 tests passing with mocked Bedrock (no live AWS calls needed)
+- M4: Verified no stack traces or internal details in error responses
+- M5: Verified all edge cases in review layer (empty fields, invalid qty/price/GST, multi-item, cancel flow)
+- M5: All 61 backend tests + frontend build passing
 
 *To be filled as testing milestones are reached.*
 
@@ -73,4 +84,7 @@ This gives the hackathon reviewer a clear progression from M2 (Kiro) through M10
 - OpenCode started after M2 was already complete and deployed
 - All M1–M2 work was performed by Kiro before its usage limit was reached
 - This summary only covers OpenCode's contribution from M3 onward
-- No application code changes have been made by OpenCode yet
+- M4 Bedrock integration tested with mocked client only — live AWS Bedrock not yet invoked
+- Backend SAM deployment not yet performed — endpoints not publicly reachable
+- M5 human review layer tested locally only — no live AWS verification
+- Antideploy frontend deployment not yet performed for M5 changes

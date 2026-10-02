@@ -40,7 +40,7 @@ docs/opencode-evidence/contribution-summary.md
 
 **Date:** 2026-10-02
 **Status:** ✅ Complete
-**Git commit:** (to be filled after commit)
+**Git commit:** `588a018`
 **Branch:** main
 
 ### Objective
@@ -125,6 +125,111 @@ backend/
 - `git diff --check` — clean
 - No secrets in source
 - No localhost references
+- Deployed frontend verified at https://invox.antideploy.app — returns HTTP 200, loads INVOX UI
+
+### Build result
+✅ Clean — all tests pass, frontend builds, SAM template valid
+
+### Antideploy deployment
+- Frontend deployment: https://invox.antideploy.app (unchanged from M2)
+- Backend (Lambda + API Gateway): Not yet deployed via SAM — separate AWS deployment step
+- Deployed frontend verified: HTTP 200, correct INVOX title and assets loading
+
+### Notes
+- Implemented by OpenCode (Kiro unavailable due to usage limit)
+- M2 frontend remains at commit `037764a`, deployed at https://invox.antideploy.app
+- No application code modified — backend is additive only
+- Deterministic placeholder enables M4 to swap in Bedrock without API contract changes
+- Backend SAM deployment required for /health and /extract endpoints to be publicly reachable
+
+---
+
+## Milestone 4 — Amazon Bedrock Extraction Integration
+
+**Date:** 2026-10-02
+**Status:** ✅ Complete
+**Git commits:** `700a427` (boto3 + IAM), `59ec4b4` (Bedrock client), `7ad4a54` (extraction schema), `aab3d31` (prompt), `a869048` (parser), `6ecb4cb` (integration)
+**Branch:** main
+
+### Objective
+Replace the deterministic `/extract` placeholder from M3 with a real Amazon Bedrock-powered extraction pipeline. The core flow: user's messy order message → API Gateway → Python Lambda → Amazon Bedrock → structured extraction → validation → JSON response.
+
+### Files created
+```
+backend/src/services/
+├── bedrock_client.py          # Bedrock runtime client (configurable model, testable)
+├── extraction_prompt.py       # Hinglish/English extraction system prompt
+├── response_parser.py         # Bedrock response parsing + validation
+backend/src/models/
+├── extraction.py              # Structured extraction contract (BedrockExtraction)
+backend/tests/
+├── test_extract.py            # Updated with 20 Bedrock-mocked tests
+├── test_app.py                # Updated with Bedrock mocking for integration tests
+```
+
+### Files modified
+```
+backend/requirements.txt       # Added boto3>=1.34.0
+backend/template.yaml          # Added bedrock:InvokeModel permissions (Claude 3 Haiku/Sonnet)
+backend/src/handlers/extract.py    # Replaced placeholder with Bedrock integration
+backend/src/services/response_parser.py  # Stricter validation for negative quantities
+backend/src/models/__init__.py       # Export extraction models
+```
+
+### API contract maintained
+- **GET /health** — Unchanged
+- **POST /extract** — Same request/response format, now with `source: "bedrock"` and real extraction
+- Request validation unchanged (message field, size limits, etc.)
+- Error format unchanged (consistent JSON with code, no stack traces)
+
+### Bedrock integration
+- **Model**: Anthropic Claude 3 Haiku (primary), Sonnet (fallback) — configurable via `BEDROCK_MODEL_ID` env var
+- **Prompt**: Focused system prompt for Hinglish/English business orders with explicit rules:
+  - Extract only stated/inferable info, no hallucination
+  - Return `null` for missing fields
+  - Preserve user's stated GST rate as `stated_gst_rate` (NOT validated rate)
+  - Explicit instruction: "stated GST rate ≠ validated GST rate"
+- **Response parsing**: Robust JSON extraction from model output (handles markdown, extra text)
+- **Validation**: Structured validation of all fields (customer, location, items[], stated_gst_rate)
+  - Rejects negative quantities/prices, invalid GST rates (>100 or <0)
+  - Missing required fields → 500 (safe error, no internal details)
+
+### Failure handling
+- Bedrock throttling → 500 with `INTERNAL_ERROR` (no internal details)
+- Bedrock access denied → 500
+- Invalid model output (malformed JSON, missing fields) → 500
+- Model validation failures (negative qty, invalid GST) → 500
+- All errors return consistent format without stack traces or credentials
+
+### IAM permissions (least privilege)
+- `bedrock:InvokeModel` for specific model ARNs:
+  - `arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0`
+  - `arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0`
+- No DynamoDB, S3, or other permissions added
+
+### Tests
+- **61 tests total** (5 new service tests + 20 Bedrock integration tests + 36 existing)
+- New test coverage:
+  - Valid Bedrock extraction with mocked client
+  - Bedrock throttling → 500
+  - Bedrock access denied → 500
+  - Invalid model JSON → 500
+  - Missing required fields in model output → 500
+  - Negative quantity in model output → 500
+  - Invalid GST rate in model output → 500
+  - CORS headers on successful extraction
+  - Request validation still works (400/405/413)
+  - HTTP API event format support
+- All 61 tests passing
+
+### Verification performed
+- `pytest tests/ -v` — 61 passed, 0 failed
+- SAM template YAML structure validated
+- `npm run build` (frontend) — clean, M2 unaffected
+- `git diff --check` — clean
+- No secrets in source
+- No localhost references
+- Frontend verified at https://invox.antideploy.app — HTTP 200
 
 ### Build result
 ✅ Clean — all tests pass, frontend builds, SAM template valid
@@ -132,24 +237,87 @@ backend/
 ### Notes
 - Implemented by OpenCode (Kiro unavailable due to usage limit)
 - M2 frontend remains at commit `037764a`, deployed at https://invox.antideploy.app
-- No application code modified — backend is additive only
-- Deterministic placeholder enables M4 to swap in Bedrock without API contract changes
+- Granular Git history: 6 meaningful commits showing step-by-step implementation
+- Backend SAM deployment required for /health and /extract endpoints to be publicly reachable
+- Frontend mockExtractor.js unchanged — ready for API integration in future milestone
 
 ---
 
-## Milestone 4 — (pending)
+## Milestone 5 — Human Review / Edit Layer
 
-*To be filled after implementation.*
+**Date:** 2026-10-02
+**Status:** ✅ Complete
+**Git commit:** `4884396`
+**Branch:** main
+
+### Objective
+Build a reliable human-review step between extraction and invoice calculation. The product principle: AI proposes. Human reviews/edits. Rules decide.
+
+### Files modified
+```
+src/components/ExtractionReview.jsx    # Complete rewrite for multiple items, optional fields, human-edited tracking
+```
+
+### Features implemented
+1. **Multiple items support** — Dynamic item list with add/remove (max 5 items)
+2. **Optional customer/location** — Fields no longer required; empty allowed
+3. **Human-edited tracking** — Visual "Edited" badges on fields modified by user
+4. **Source-aware badge** — Shows "Demo data" (mock), "AI extracted" (bedrock), or "Not implemented" (placeholder)
+5. **Improved validation** — Touched-state validation (errors only show after blur)
+6. **Stated GST rate optional** — If not provided, passes null to backend
+7. **Items validation** — Each item requires name, positive integer quantity, non-negative price
+
+### Validation rules
+- Customer: optional (empty allowed)
+- Location: optional (empty allowed)
+- Items: at least one required; each item needs name, positive integer quantity, non-negative price
+- Stated GST rate: optional; if provided, must be 0-100
+- Error messages only show after field is blurred (touched)
+
+### UI improvements
+- "Edited" badge on human-modified fields
+- Source badge works for mock, bedrock, placeholder
+- Add/remove items (max 5)
+- Remove button per item (disabled when only 1 item)
+- Cleaner label wording: "Customer (optional)", "Location (optional)", "Stated GST rate (%) — optional"
+
+### Confirmation boundary
+- Before confirm: AI-proposed data can be edited
+- After confirm: reviewed structured order passed forward to next stage (M6)
+- Confirmed order contains: customer, location, items[], statedGstRate (null if not provided)
+
+### Edge cases handled
+1. Empty customer/location — allowed
+2. Invalid quantity (non-numeric, zero, negative) — rejected with clear message
+3. Invalid unit price (non-numeric, negative) — rejected
+4. GST rate below 0 or above 100 — rejected
+5. Multiple items (up to 5) — supported with add/remove
+6. User edits and confirms — values persist in confirmed order
+7. User edits and cancels — onReset clears form
+8. Extraction failure — handled by App.jsx error state
+9. Empty item names — rejected
+10. Empty items list — rejected
+
+### Verification performed
+- `npm run build` — clean, M2 unaffected
+- `pytest tests/ -v` (backend) — 61 passed, 0 failed
+- `git diff --check` — clean
+- No secrets in source
+- No localhost references
+- No stack traces in error responses
+
+### Build result
+✅ Clean — all tests pass, frontend builds
+
+### Notes
+- Implemented by OpenCode (Kiro unavailable due to usage limit)
+- M2/M4 frontend/backend contracts maintained
+- M5 is purely the human review/edit layer — no GST calculation, no invoice generation, no payments
+- Granular Git history: 1 meaningful commit for M5 implementation
 
 ---
 
-## Milestone 4 — (pending)
-
-*To be filled after implementation.*
-
----
-
-## Milestone 5 — (pending)
+## Milestone 6 — (pending)
 
 *To be filled after implementation.*
 
