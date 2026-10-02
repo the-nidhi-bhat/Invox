@@ -36,9 +36,16 @@ Resources:
       Handler: src.app.lambda_handler
       CodeUri: src/
       Policies:
-        # Least privilege: no Bedrock, no DynamoDB in M3
-        # Only basic Lambda execution permissions
+        # Least privilege: Bedrock invoke for extraction, basic Lambda execution
         - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0
+                - !Sub arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0
       Events:
         HealthGet:
           Type: Api
