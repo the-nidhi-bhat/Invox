@@ -142,7 +142,7 @@ Correct five inaccuracies in the README identified during review.
 
 **Date:** 2026-10-02
 **Status:** ✅ Complete
-**Git commit:** *(this commit)*
+**Git commit:** `037764a`
 **Branch:** main
 
 ### Objective
