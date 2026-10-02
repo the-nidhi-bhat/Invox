@@ -11,6 +11,7 @@ It is distinct from the historical Kiro contributions recorded in `docs/kiro-evi
 - M3: OpenCode created implementation plan covering backend structure, API design, validation, SAM template, and testing strategy
 - M4: OpenCode designed Bedrock integration architecture: client isolation, prompt engineering, response parsing, schema validation, failure handling, IAM least-privilege
 - M5: OpenCode designed human review layer: multi-item support, optional fields, human-edited tracking, validation UX
+- M6: OpenCode designed deterministic GST engine: product mapping, intra/inter-state logic, Decimal arithmetic, mismatch detection
 
 *To be filled as milestones progress.*
 
@@ -35,6 +36,7 @@ It is distinct from the historical Kiro contributions recorded in `docs/kiro-evi
 | 3 | Python Lambda + API Gateway foundation (health, extract, validation, SAM, 56 tests) | ✅ Tests pass, SAM valid, frontend build clean |
 | 4 | Bedrock integration: client, prompt, parser, schema, /extract integration, 61 tests | ✅ Tests pass, SAM valid, frontend build clean |
 | 5 | Human review layer: multi-item, optional fields, edited badges, validation UX | ✅ Tests pass, frontend build clean |
+| 6 | Deterministic GST engine: product mapping, intra/inter-state, Decimal arithmetic, mismatch detection, frontend display | ✅ 126 tests pass, frontend build clean |
 
 *Update after each milestone.*
 
@@ -48,6 +50,9 @@ It is distinct from the historical Kiro contributions recorded in `docs/kiro-evi
 - M4: Verified no stack traces or internal details in error responses
 - M5: Verified all edge cases in review layer (empty fields, invalid qty/price/GST, multi-item, cancel flow)
 - M5: All 61 backend tests + frontend build passing
+- M6: Created 65 new tests for GST engine (25 unit + 17 handler + 23 validators)
+- M6: All 126 backend tests passing
+- M6: Verified intra-state (CGST+SGST), inter-state (IGST), mismatch detection, Decimal precision
 
 *To be filled as testing milestones are reached.*
 
@@ -88,3 +93,5 @@ This gives the hackathon reviewer a clear progression from M2 (Kiro) through M10
 - Backend SAM deployment not yet performed — endpoints not publicly reachable
 - M5 human review layer tested locally only — no live AWS verification
 - Antideploy frontend deployment not yet performed for M5 changes
+- M6 GST engine tested locally only — no live AWS verification
+- Antideploy frontend deployment not yet performed for M6 changes

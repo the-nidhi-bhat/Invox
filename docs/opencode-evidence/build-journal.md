@@ -324,7 +324,96 @@ src/components/ExtractionReview.jsx    # Complete rewrite for multiple items, op
 
 ---
 
-## Milestone 6 — (pending)
+## Milestone 6 — Deterministic GST Engine
+
+**Date:** 2026-10-02
+**Status:** ✅ Complete
+**Git commits:** `53de17e` (backend engine), `8299b38` (frontend display)
+**Branch:** main
+
+### Objective
+Build the deterministic GST calculation layer. The core principle: AI proposes. Rules decide. You stay in control.
+
+### Files created (backend)
+```
+backend/src/services/
+├── gst_engine.py                # Deterministic GST engine with product mapping, intra/inter-state logic
+backend/src/models/
+├── gst.py                       # GST calculation request/response models
+backend/src/handlers/
+├── gst.py                       # POST /gst/calculate endpoint handler
+backend/src/validators/
+├── gst.py                       # GST calculation request validation
+backend/tests/
+├── test_gst_engine.py           # 25 unit tests for GST engine
+├── test_gst_handler.py          # 17 integration tests for /gst/calculate endpoint
+├── test_gst_validators.py       # 23 validator tests
+```
+
+### Files modified
+```
+backend/src/app.py                    # Added /gst/calculate route
+backend/src/handlers/__init__.py      # Export gst handler
+backend/src/models/__init__.py        # Export GST models
+backend/src/validators/__init__.py    # Export GST validators
+src/App.jsx                           # Frontend GST calculation display
+```
+
+### GST Engine Features
+1. **Product GST mapping** — MVP ruleset with 18 products across electronics (18%), stationery (12%), food (5%/0%)
+2. **Intra-state calculation** — CGST + SGST (equal split of determined rate)
+3. **Inter-state calculation** — IGST (full determined rate)
+4. **Deterministic Decimal arithmetic** — No floating-point errors, ROUND_HALF_UP rounding
+4. **Mismatch detection** — Compares stated GST rate vs determined rate
+5. **Fallback behavior** — Unknown products default to 18%
+5. **Seller state configuration** — Default: MAHARASHTRA
+
+### API Contract
+- **POST /gst/calculate** — Calculates deterministic GST for confirmed orders
+- Request: `{customer_state, items[{name, quantity, unit_price, stated_gst_rate}]}`
+- Response: Items with subtotals, GST breakdown (CGST/SGST or IGST), totals, mismatch flag
+
+### Mismatch Detection
+- When `stated_gst_rate` != `determined_gst_rate` → `gst_mismatch: true`
+- Returns explicit mismatch details per item
+- UI clearly flags: "Message stated X% GST, but rules determine Y%. Calculation uses determined rate."
+
+### Frontend Integration
+- New `calculating` state with loading spinner
+- Confirmed view shows:
+  - Mismatch warning banner (amber) when rates differ
+  - Tax type badge (Intra-state/Inter-state)
+  - Per-item breakdown: subtotal, GST rate, CGST/SGST/IGST amounts
+  - Totals: subtotal, total GST, CGST/SGST or IGST, grand total
+  - "AI proposed. Rules decided." confirmation message
+- Error state handles both extraction and GST calculation failures
+
+### Tests
+- **Backend: 126 tests total** (25 GST engine + 17 handler + 23 validators + 61 existing)
+- All 126 tests passing
+- Frontend build clean
+
+### Verification performed
+- `pytest tests/ -v` — 126 passed, 0 failed
+- `npm run build` — clean
+- `git diff --check` — clean
+- No secrets in source
+- No localhost references
+
+### Build result
+✅ Clean — all tests pass, frontend builds
+
+### Notes
+- Implemented by OpenCode (Kiro unavailable due to usage limit)
+- M5 frontend/backend contracts maintained
+- M6 is purely the deterministic GST layer — no invoice generation, no UPI, no DynamoDB
+- Live AWS verification NOT performed (no AWS credentials configured)
+- Antideploy frontend deployment pending manual trigger
+- Granular Git history: 2 meaningful commits for M6 (backend + frontend)
+
+---
+
+## Milestone 7 — (pending)
 
 *To be filled after implementation.*
 
