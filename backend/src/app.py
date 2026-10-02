@@ -5,12 +5,14 @@ Routes API Gateway requests to appropriate handlers.
 Supports:
 - GET /health
 - POST /extract
+- POST /gst/calculate
 - OPTIONS (CORS preflight)
 """
 
 import json
 from src.handlers.health import handle_health
 from src.handlers.extract import handle_extract
+from src.handlers.gst import handle_gst_calculate
 from src.utils.responses import (
     error_not_found,
     error_method_not_allowed,
@@ -60,6 +62,11 @@ def route_request(event: dict, context: object) -> dict:
     if path == '/extract':
         if http_method == 'POST':
             return handle_extract(event, context)
+        return error_method_not_allowed()
+    
+    if path == '/gst/calculate':
+        if http_method == 'POST':
+            return handle_gst_calculate(event, context)
         return error_method_not_allowed()
 
     # Not found
