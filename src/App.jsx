@@ -7,11 +7,13 @@ import EmptyState from './components/EmptyState.jsx'
 import LandingPage from './components/LandingPage.jsx'
 import { useTheme } from './context/ThemeContext.jsx'
 import {
+  hasConfiguredApi,
   normalizeGstResponse,
   normalizeInvoiceResponse,
   normalizeUpiResponse,
   postJson,
 } from './services/api.js'
+import { calculateGstLocally } from './services/gstCalculator.js'
 
 /**
  * App — INVOX root component.
@@ -81,19 +83,18 @@ export default function App() {
     setGstError('')
 
     try {
-      const data = normalizeGstResponse(await postJson(
-        '/gst/calculate',
-        {
-          customer_state: draft.customerState,
-          items: draft.items.map(item => ({
-            name: item.name,
-            quantity: item.quantity,
-            unit_price: item.unitPrice,
-            stated_gst_rate: draft.statedGstRate,
-          })),
-        },
-        'GST calculation failed'
-      ))
+      const request = {
+        customer_state: draft.customerState,
+        items: draft.items.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          stated_gst_rate: draft.statedGstRate,
+        })),
+      }
+      const data = hasConfiguredApi()
+        ? normalizeGstResponse(await postJson('/gst/calculate', request, 'GST calculation failed'))
+        : calculateGstLocally(request)
 
       setGstResult(data)
       setUiState('confirmed')

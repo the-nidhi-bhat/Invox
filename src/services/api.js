@@ -1,5 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '')
 
+export function hasConfiguredApi() {
+  return Boolean(API_BASE_URL)
+}
+
 function apiUrl(path) {
   return `${API_BASE_URL ?? ''}${path}`
 }
