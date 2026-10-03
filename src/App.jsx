@@ -5,6 +5,7 @@ import LoadingState from './components/LoadingState.jsx'
 import ExtractionReview from './components/ExtractionReview.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import LandingPage from './components/LandingPage.jsx'
+import { useTheme } from './context/ThemeContext.jsx'
 
 /**
  * App — INVOX root component.
@@ -26,7 +27,8 @@ import LandingPage from './components/LandingPage.jsx'
  * M10 adds: landing page, theme support
  */
 export default function App() {
-  const [uiState, setUiState] = useState('landing')  // 'landing' | 'idle' | 'loading' | 'review' | 'calculating' | 'confirmed' | 'generating' | 'invoice' | 'upi' | 'error'
+  const { theme } = useTheme()
+  const [uiState, setUiState] = useState('landing')
   const [submittedMessage, setSubmittedMessage] = useState('')
   const [extraction, setExtraction] = useState(null)
   const [extractionError, setExtractionError] = useState('')
@@ -37,20 +39,6 @@ export default function App() {
   const [invoiceError, setInvoiceError] = useState('')
   const [upi, setUpi] = useState(null)
   const [upiError, setUpiError] = useState('')
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme')
-      if (saved) return saved
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    }
-    return 'dark'
-  })
-
-  // Apply theme to document
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('theme', theme)
-  }, [theme])
 
   function handleEnterApp() {
     setUiState('idle')
@@ -86,7 +74,6 @@ export default function App() {
     setGstError('')
 
     try {
-      // Call deterministic GST calculation endpoint
       const response = await fetch('/gst/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -159,7 +146,7 @@ export default function App() {
       return
     }
 
-    setUiState('upi')  // Using 'upi' state for loading
+    setUiState('upi')
     setUpiError('')
 
     try {
@@ -171,9 +158,9 @@ export default function App() {
           invoice_amount: invoice.grandTotal,
           customer_name: invoice.customer?.name,
           customer_location: invoice.customer?.location,
-          customer_vpa: undefined, // User can enter their VPA in the UPI app
-          merchant_name: undefined, // Uses default
-          merchant_vpa: undefined, // Uses default
+          customer_vpa: undefined,
+          merchant_name: undefined,
+          merchant_vpa: undefined,
           transaction_note: undefined,
           currency: 'INR',
         }),
@@ -186,7 +173,7 @@ export default function App() {
       }
 
       setUpi(data)
-      setUiState('upi')  // Show UPI state (same as loading but with result)
+      setUiState('upi')
     } catch (err) {
       setUpiError(err?.message ?? 'UPI generation failed. Please try again.')
       setUiState('error')
