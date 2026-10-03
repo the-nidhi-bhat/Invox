@@ -164,20 +164,20 @@ The AI handles language. The seller handles judgment. The rules handle arithmeti
 | Area | Status |
 |------|--------|
 | React + Vite frontend foundation | Implemented |
-| Tailwind CSS UI foundation | Implemented |
-| Order input component | Implemented (mock data) |
-| Invoice preview component | Implemented (mock data) |
-| Loading and empty states | Implemented |
+| Tailwind CSS UI foundation | Implemented (M10 enhanced design system) |
+| Order input component | Implemented (M2 WhatsApp-style with mock extraction) |
+| Invoice preview component | Implemented (M6/M7 with M10 polish) |
+| Loading and empty states | Implemented (M10 polished) |
 | Kiro steering and evidence system | Implemented |
-| AWS SAM / Lambda backend | Planned |
-| API Gateway | Planned |
-| Amazon Bedrock integration | Planned |
-| Deterministic GST engine | Planned |
-| Human review/edit flow | Planned |
-| DynamoDB persistence | Planned |
-| UPI payment request | Planned |
-| Pytest backend tests | Planned |
-| Production deployment | Planned |
+| AWS SAM / Lambda backend | Implemented (M3-M9) |
+| API Gateway | Implemented (M3) |
+| Amazon Bedrock integration | Implemented (M3) |
+| Deterministic GST engine | Implemented (M5/M6) |
+| Human review/edit flow | Implemented (M4/M5) |
+| DynamoDB persistence | Implemented (M8/M9) |
+| UPI payment request | Implemented (M7/M8) |
+| Pytest backend tests | Implemented (212 tests passing) |
+| Production build | Verified |
 
 ---
 
@@ -201,21 +201,77 @@ The AI handles language. The seller handles judgment. The rules handle arithmeti
 
 ## Project Structure
 
-### Current repository
+### Current repository (M1–M10 implemented)
 
 ```
 invox/
 ├── src/
-│   ├── App.jsx                   # Root layout (two-panel)
+│   ├── App.jsx                   # Root layout (two-panel) — M10 polished
 │   ├── main.jsx                  # React entry point
-│   ├── index.css                 # Tailwind base styles
+│   ├── index.css                 # Tailwind base styles (M10 design system)
 │   └── components/
 │       ├── Header.jsx            # Top navigation
-│       ├── ChatInput.jsx         # Order text input + mock invoice
-│       ├── InvoicePreview.jsx    # Invoice display + GST calc
-│       └── EmptyState.jsx        # Pre-invoice placeholder
+│       ├── OrderComposer.jsx     # Order text input with example
+│       ├── ExtractionReview.jsx  # Human review/edit of AI extraction
+│       ├── InvoicePreview.jsx    # Invoice display + GST breakdown
+│       ├── LoadingState.jsx      # Extraction loading state
+│       ├── EmptyState.jsx        # Pre-invoice placeholder
+│       └── WorkflowSteps.jsx     # Progress indicator (in App.jsx)
+├── backend/
+│   ├── src/
+│   │   ├── app.py                # Lambda entry point
+│   │   ├── handlers/             # API route handlers
+│   │   │   ├── extract.py        # POST /extract
+│   │   │   ├── gst.py            # POST /gst/calculate
+│   │   │   ├── invoice.py        # POST /invoice/generate, GET /invoice/{id}
+│   │   │   ├── upi.py            # POST /upi/generate
+│   │   │   └── health.py         # GET /health
+│   │   ├── models/               # Data models
+│   │   │   ├── extraction.py     # Extraction result types
+│   │   │   ├── gst.py            # GST calculation types
+│   │   │   ├── invoice.py        # Invoice types
+│   │   │   ├── persistence.py    # DynamoDB persistence types
+│   │   │   ├── request.py        # Request types
+│   │   │   ├── response.py       # Response types
+│   │   │   └── upi.py            # UPI types
+│   │   ├── services/             # Business logic
+│   │   │   ├── bedrock_client.py       # Bedrock API client
+│   │   │   ├── dynamodb_repository.py  # DynamoDB repository
+│   │   │   ├── extraction_prompt.py    # Bedrock prompts
+│   │   │   ├── gst_engine.py           # Deterministic GST engine
+│   │   │   ├── invoice_service.py      # Invoice generation
+│   │   │   ├── persistence_service.py  # Persistence layer
+│   │   │   ├── response_parser.py      # Bedrock response parsing
+│   │   │   └── upi_service.py          # UPI request generation
+│   │   ├── utils/
+│   │   │   └── responses.py            # Standardized responses
+│   │   └── validators/               # Input validation
+│   │       ├── extract.py
+│   │       ├── gst.py
+│   │       ├── invoice.py
+│   │       └── upi.py
+│   ├── tests/                        # 212 tests passing
+│   │   ├── test_app.py
+│   │   ├── test_dynamodb_repository.py
+│   │   ├── test_extract.py
+│   │   ├── test_gst_engine.py
+│   │   ├── test_gst_handler.py
+│   │   ├── test_gst_validators.py
+│   │   ├── test_health.py
+│   │   ├── test_invoice_handler.py
+│   │   ├── test_invoice_handler_m9.py
+│   │   ├── test_invoice_models.py
+│   │   ├── test_invoice_service.py
+│   │   ├── test_persistence_models.py
+│   │   ├── test_persistence_service.py
+│   │   ├── test_responses.py
+│   │   ├── test_upi_handler_m9.py
+│   │   └── test_validators.py
+│   ├── requirements.txt
+│   └── requirements-dev.txt
+├── template.yaml                     # AWS SAM template (single Lambda + DynamoDB)
 ├── .kiro/
-│   ├── steering/                 # Kiro persistent project rules
+│   ├── steering/                     # Kiro persistent project rules
 │   │   ├── project.md
 │   │   ├── architecture.md
 │   │   ├── workflow.md
@@ -227,41 +283,21 @@ invox/
 │       ├── secret-detection.json
 │       └── milestone-complete-reminder.json
 ├── docs/
-│   └── kiro-evidence/
+│   ├── kiro-evidence/
+│   │   ├── build-journal.md
+│   │   ├── milestone-commits.md
+│   │   └── kiro-contribution-summary.md
+│   └── opencode-evidence/
 │       ├── build-journal.md
-│       ├── milestone-commits.md
-│       └── kiro-contribution-summary.md
-├── AGENTS.md                     # Top-level context for Kiro sessions
+│       ├── contribution-summary.md
+│       └── milestone-commits.md
+├── AGENTS.md                         # Top-level context for agent sessions
 ├── index.html
 ├── package.json
 ├── vite.config.js
-├── tailwind.config.js
+├── tailwind.config.js                # M10 enhanced design system
 ├── postcss.config.js
 └── .gitignore
-```
-
-### Target MVP structure (planned — introduced as milestones are implemented)
-
-```
-invox/
-├── src/                          # Frontend (as above, expanded)
-├── backend/
-│   ├── src/
-│   │   ├── handler.py            # Lambda entry point
-│   │   ├── bedrock.py            # Bedrock extraction logic
-│   │   ├── gst.py                # Deterministic GST engine
-│   │   ├── invoice.py            # Invoice calculation
-│   │   ├── validation.py         # Input and AI-output validation
-│   │   ├── dynamodb.py           # DynamoDB persistence
-│   │   └── upi.py                # UPI request generation
-│   ├── tests/
-│   │   ├── test_gst.py
-│   │   ├── test_invoice.py
-│   │   ├── test_validation.py
-│   │   └── test_bedrock.py
-│   └── requirements.txt
-├── template.yaml                 # AWS SAM template (single Lambda)
-└── ...
 ```
 
 **Architecture note:** INVOX uses a single Python Lambda function. All backend logic — extraction orchestration, GST calculation, invoice generation, UPI request, and DynamoDB persistence — lives in one Lambda invoked through API Gateway. There are no separate micro-Lambdas.

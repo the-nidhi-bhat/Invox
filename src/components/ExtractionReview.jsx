@@ -152,33 +152,33 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
     <div className="flex flex-col gap-4">
 
       {/* Original message */}
-      <div className="bg-gray-800/60 rounded-xl px-4 py-3">
-        <p className="text-xs text-gray-500 mb-1">Original message</p>
-        <p className="text-sm text-gray-300 italic leading-relaxed">"{originalMessage}"</p>
+      <div className="bg-surface-elevated/60 rounded-xl px-4 py-3">
+        <p className="text-xs text-text-muted mb-1">Original message</p>
+        <p className="text-sm text-text-secondary italic leading-relaxed">"{originalMessage}"</p>
       </div>
 
       {/* Review card */}
-      <div className="rounded-2xl bg-gray-900 border border-gray-800 overflow-hidden">
+      <div className="card overflow-hidden">
 
         {/* Card header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <h2 className="text-sm font-semibold text-white">Review extracted order</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h2 className="text-sm font-semibold text-text-primary">Review extracted order</h2>
+            <p className="text-xs text-text-muted mt-0.5">
               Edit any field, then confirm to continue.
             </p>
           </div>
-          <span className="text-xs px-2 py-0.5 rounded border border-gray-700 text-gray-500 shrink-0">
+          <span className="badge-neutral shrink-0">
             {sourceLabels[source] ?? 'Unknown source'}
           </span>
         </div>
 
         {/* Notice */}
-        <div className="px-5 py-3 bg-yellow-500/5 border-b border-yellow-500/10 flex items-start gap-2">
-          <svg className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+        <div className="px-5 py-3 bg-status-warning/5 border-b border-status-warning/10 flex items-start gap-2">
+          <svg className="w-4 h-4 text-status-warning mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
           </svg>
-          <p className="text-xs text-yellow-400 leading-relaxed">
+          <p className="text-xs text-status-warning leading-relaxed">
             <span className="font-semibold">Review before continuing.</span>{' '}
             The stated GST rate is what appeared in the message — it is NOT the validated rate.
             GST rules are applied by the backend in a later step.
@@ -213,8 +213,8 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
           </div>
 
           {/* Divider */}
-          <div className="border-t border-gray-800" aria-hidden="true" />
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-widest -mb-1">Items</p>
+          <div className="border-t border-border" aria-hidden="true" />
+          <p className="text-xs text-text-muted font-medium uppercase tracking-widest -mb-1">Items</p>
 
           {/* Items list */}
           <div className="flex flex-col gap-3">
@@ -237,7 +237,7 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
               <button
                 type="button"
                 onClick={handleAddItem}
-                className="w-full py-2 text-center text-xs text-brand-500 hover:text-brand-400 border border-dashed border-gray-700 rounded-lg transition"
+                className="w-full py-2 text-center text-xs text-brand-500 hover:text-brand-400 border border-dashed border-border rounded-lg transition"
               >
                 + Add another item
               </button>
@@ -245,7 +245,7 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
           </div>
 
           {/* Divider */}
-          <div className="border-t border-gray-800" aria-hidden="true" />
+          <div className="border-t border-border" aria-hidden="true" />
 
           {/* GST rate */}
           <div>
@@ -260,30 +260,25 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
               inputMode="decimal"
               isEdited={humanEdited.statedGstRate}
             />
-            <p className="text-xs text-gray-600 mt-1.5">
+            <p className="text-xs text-text-muted mt-1.5">
               This is what the message stated. The backend will validate and apply the correct rate.
             </p>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="px-5 py-4 border-t border-gray-800 flex flex-col sm:flex-row gap-3">
+        <div className="px-5 py-4 border-t border-border flex flex-col sm:flex-row gap-3">
           <button
             type="button"
             onClick={onReset}
-            className="flex-1 sm:flex-none px-4 py-2.5 rounded-lg border border-gray-700
-                       text-gray-400 text-sm font-medium hover:border-gray-600 hover:text-gray-300
-                       transition focus:outline-none focus:ring-2 focus:ring-gray-600"
+            className="btn-secondary btn-md"
           >
             Start over
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 active:bg-brand-700
-                       text-white text-sm font-semibold transition
-                       focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
-                       focus:ring-offset-gray-900"
+            className="btn-primary btn-md"
           >
             Confirm order →
           </button>
@@ -343,7 +338,7 @@ function ItemRow({ index, item, errors, touched, humanEdited, onUpdate, onBlur, 
         <button
           type="button"
           onClick={onRemove}
-          className="self-end px-3 py-2 text-xs text-gray-500 hover:text-red-400 border border-gray-700 hover:border-red-500 rounded-lg transition"
+          className="self-end px-3 py-2 text-xs text-text-muted hover:text-status-error border border-border hover:border-status-error rounded-lg transition"
           aria-label={`Remove item ${index + 1}`}
         >
           Remove
@@ -358,8 +353,8 @@ function ItemRow({ index, item, errors, touched, humanEdited, onUpdate, onBlur, 
  */
 function Field({ id, label, value, error, onChange, onBlur, placeholder, inputMode, isEdited }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="flex items-center gap-1 text-xs font-medium text-gray-400">
+    <div className="field-group">
+      <label htmlFor={id} className="flex items-center gap-1 text-xs font-medium text-text-secondary">
         {label}
         {isEdited && (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-400 border border-brand-500/30">
@@ -378,14 +373,12 @@ function Field({ id, label, value, error, onChange, onBlur, placeholder, inputMo
         aria-invalid={!!error}
         aria-describedby={error ? `${id}-error` : undefined}
         className={[
-          'rounded-lg bg-gray-800 border text-gray-100 text-sm px-3 py-2',
-          'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition',
-          error ? 'border-red-500' : 'border-gray-700',
-          isEdited ? 'ring-1 ring-brand-500/50' : '',
+          'input',
+          error && 'input-error',
         ].join(' ')}
       />
       {error && (
-        <p id={`${id}-error`} role="alert" className="text-xs text-red-400">
+        <p id={`${id}-error`} role="alert" className="field-error">
           {error}
         </p>
       )}

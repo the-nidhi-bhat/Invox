@@ -62,12 +62,10 @@ export default function OrderComposer({ onExtractionStart, onExtractionSuccess, 
           id="order-message"
           name="order-message"
           className={[
-            'w-full min-h-[120px] rounded-xl bg-gray-800 border text-gray-100 text-sm p-4 pr-4',
-            'placeholder-gray-600 resize-none focus:outline-none focus:ring-2',
-            'focus:ring-brand-500 focus:border-transparent transition leading-relaxed',
-            fieldError ? 'border-red-500' : 'border-gray-700',
+            'input min-h-[120px] resize-none',
+            fieldError && 'input-error',
           ].join(' ')}
-          placeholder={'Type or paste your order — e.g. \u201cbhaiya 50 mouse 450 wala, Acme Pune ko, 5% gst laga dena\u201d'}
+          placeholder={'Type or paste your order — e.g. "bhaiya 50 mouse 450 wala, Acme Pune ko, 5% gst laga dena"'}
           value={message}
           onChange={handleChange}
           disabled={loading}
@@ -80,7 +78,7 @@ export default function OrderComposer({ onExtractionStart, onExtractionSuccess, 
 
       {/* Validation error */}
       {fieldError && (
-        <p id="order-error" role="alert" className="text-xs text-red-400 -mt-1">
+        <p id="order-error" role="alert" className="field-error">
           {fieldError}
         </p>
       )}
@@ -91,9 +89,9 @@ export default function OrderComposer({ onExtractionStart, onExtractionSuccess, 
           type="button"
           onClick={fillExample}
           disabled={loading}
-          className="text-xs text-gray-500 hover:text-brand-500 underline underline-offset-2
-                     transition disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none
-                     focus:ring-2 focus:ring-brand-500 rounded"
+          className="text-xs text-text-muted hover:text-brand-500 underline underline-offset-2
+                     transition disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none
+                     focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
         >
           Use example order
         </button>
@@ -101,11 +99,7 @@ export default function OrderComposer({ onExtractionStart, onExtractionSuccess, 
         <button
           type="submit"
           disabled={loading || !message.trim()}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600
-                     active:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed
-                     text-white text-sm font-semibold transition
-                     focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
-                     focus:ring-offset-gray-900"
+          className="btn-primary btn-md"
         >
           {loading ? (
             <>

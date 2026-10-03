@@ -202,16 +202,16 @@ export default function App() {
         )
       case 'calculating':
         return (
-          <div className="rounded-2xl bg-gray-900 border border-yellow-800/40 p-8 flex flex-col items-center gap-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
-              <svg className="w-6 h-6 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <div className="card border-status-warning/40 p-8 flex flex-col items-center gap-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-status-warning/10 flex items-center justify-center">
+              <svg className="w-6 h-6 text-status-warning animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-white font-semibold text-sm">Calculating GST</h3>
-              <p className="text-gray-500 text-xs mt-1 max-w-[280px]">
+              <h3 className="text-text-primary font-semibold text-sm">Calculating GST</h3>
+              <p className="text-text-muted text-xs mt-1 max-w-[280px]">
                 Applying deterministic tax rules…
               </p>
             </div>
@@ -221,13 +221,13 @@ export default function App() {
         return (
           <div className="flex flex-col gap-4">
             {gstResult?.gst_mismatch && (
-              <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 flex items-start gap-3">
-                <svg className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <div className="rounded-xl bg-status-warning/10 border border-status-warning/30 p-4 flex items-start gap-3">
+                <svg className="w-5 h-5 text-status-warning mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 </svg>
                 <div className="flex-1">
-                  <p className="text-xs font-semibold text-amber-400">GST rate mismatch detected</p>
-                  <p className="text-xs text-amber-300 mt-1">
+                  <p className="text-xs font-semibold text-status-warning">GST rate mismatch detected</p>
+                  <p className="text-xs text-status-warning/70 mt-1">
                     Message stated <span className="font-semibold">{gstResult.stated_gst_rate ?? 'no'}%</span> GST,
                     but deterministic rules determine <span className="font-semibold">{gstResult.determined_gst_rate}%</span>.
                     Calculation uses the <span className="font-semibold">determined rate</span>.
@@ -236,55 +236,55 @@ export default function App() {
               </div>
             )}
 
-            <div className="rounded-2xl bg-gray-900 border border-green-800/40 p-5 flex flex-col gap-4">
+            <div className="card border-status-success/40 p-5 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-white font-semibold text-sm">GST Calculation Complete</h3>
-                  <p className="text-gray-500 text-xs mt-1">
+                  <h3 className="text-text-primary font-semibold text-sm">GST Calculation Complete</h3>
+                  <p className="text-text-muted text-xs mt-1">
                     Deterministic rules applied. AI proposed. Rules decided.
                   </p>
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded border border-green-700 text-green-400 shrink-0">
+                <span className="badge-info shrink-0">
                   {gstResult?.tax_type === 'intra_state' ? 'Intra-state (CGST+SGST)' : 'Inter-state (IGST)'}
                 </span>
               </div>
 
-              <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Items</p>
+              <div className="card p-4 flex flex-col gap-3">
+                <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Items</p>
                 <div className="flex flex-col gap-2">
                   {gstResult?.items?.map((item, idx) => (
-                    <div key={idx} className="rounded-lg bg-gray-800/50 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div key={idx} className="card p-3 flex flex-col sm:flex-row sm:items-center gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white">{item.name}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm font-medium text-text-primary">{item.name}</p>
+                        <p className="text-xs text-text-muted">
                           Qty: {item.quantity} × ₹{item.unit_price}
                         </p>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs text-right">
                         <div>
-                          <p className="text-gray-500">Subtotal</p>
-                          <p className="text-white">₹{item.subtotal.toFixed(2)}</p>
+                          <p className="text-text-muted">Subtotal</p>
+                          <p className="text-text-primary">₹{item.subtotal.toFixed(2)}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500">GST ({item.gst_rate}%)</p>
-                          <p className="text-white">₹{item.gst_amount.toFixed(2)}</p>
+                          <p className="text-text-muted">GST ({item.gst_rate}%)</p>
+                          <p className="text-text-primary">₹{item.gst_amount.toFixed(2)}</p>
                         </div>
                         {item.tax_type === 'intra_state' ? (
                           <>
                             <div>
-                              <p className="text-gray-500">CGST ({item.cgst_rate}%)</p>
-                              <p className="text-white">₹{item.cgst_amount.toFixed(2)}</p>
+                              <p className="text-text-muted">CGST ({item.cgst_rate}%)</p>
+                              <p className="text-text-primary">₹{item.cgst_amount.toFixed(2)}</p>
                             </div>
                             <div>
-                              <p className="text-gray-500">SGST ({item.sgst_rate}%)</p>
-                              <p className="text-white">₹{item.sgst_amount.toFixed(2)}</p>
+                              <p className="text-text-muted">SGST ({item.sgst_rate}%)</p>
+                              <p className="text-text-primary">₹{item.sgst_amount.toFixed(2)}</p>
                             </div>
                           </>
                         ) : (
                           <>
                             <div className="sm:col-span-2">
-                              <p className="text-gray-500">IGST ({item.igst_rate}%)</p>
-                              <p className="text-white">₹{item.igst_amount.toFixed(2)}</p>
+                              <p className="text-text-muted">IGST ({item.igst_rate}%)</p>
+                              <p className="text-text-primary">₹{item.igst_amount.toFixed(2)}</p>
                             </div>
                             <div className="sm:hidden" />
                           </>
@@ -295,33 +295,33 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-2">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Totals</p>
+              <div className="card p-4 flex flex-col gap-2">
+                <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Totals</p>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                  <dt className="text-gray-500">Subtotal</dt>
-                  <dd className="text-gray-200 text-right">₹{gstResult?.total_subtotal.toFixed(2)}</dd>
-                  <dt className="text-gray-500">Total GST</dt>
-                  <dd className="text-gray-200 text-right">₹{gstResult?.total_gst_amount.toFixed(2)}</dd>
+                  <dt className="text-text-muted">Subtotal</dt>
+                  <dd className="text-text-primary text-right">₹{gstResult?.total_subtotal.toFixed(2)}</dd>
+                  <dt className="text-text-muted">Total GST</dt>
+                  <dd className="text-text-primary text-right">₹{gstResult?.total_gst_amount.toFixed(2)}</dd>
                   {gstResult?.tax_type === 'intra_state' ? (
                     <>
-                      <dt className="text-gray-500">CGST</dt>
-                      <dd className="text-gray-200 text-right">₹{gstResult?.total_cgst.toFixed(2)}</dd>
-                      <dt className="text-gray-500">SGST</dt>
-                      <dd className="text-gray-200 text-right">₹{gstResult?.total_sgst.toFixed(2)}</dd>
+                      <dt className="text-text-muted">CGST</dt>
+                      <dd className="text-text-primary text-right">₹{gstResult?.total_cgst.toFixed(2)}</dd>
+                      <dt className="text-text-muted">SGST</dt>
+                      <dd className="text-text-primary text-right">₹{gstResult?.total_sgst.toFixed(2)}</dd>
                     </>
                   ) : (
                     <>
-                      <dt className="text-gray-500">IGST</dt>
-                      <dd className="text-gray-200 text-right">₹{gstResult?.total_igst.toFixed(2)}</dd>
+                      <dt className="text-text-muted">IGST</dt>
+                      <dd className="text-text-primary text-right">₹{gstResult?.total_igst.toFixed(2)}</dd>
                     </>
                   )}
-                  <dt className="text-gray-500 font-semibold">Grand Total</dt>
-                  <dd className="text-white font-semibold text-right">₹{gstResult?.grand_total.toFixed(2)}</dd>
+                  <dt className="text-text-muted font-semibold">Grand Total</dt>
+                  <dd className="text-text-primary font-semibold text-right">₹{gstResult?.grand_total.toFixed(2)}</dd>
                 </dl>
               </div>
 
-              <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-center">
-                <p className="text-xs text-green-400">
+              <div className="rounded-lg bg-status-success/10 border border-status-success/30 p-3 text-center">
+                <p className="text-xs text-status-success">
                   Calculation uses deterministic rules. AI proposed the extraction; rules decided the tax.
                 </p>
               </div>
@@ -329,9 +329,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleReset}
-                className="px-4 py-2.5 rounded-lg border border-gray-700 text-gray-400 text-sm font-medium
-                           hover:border-gray-600 hover:text-gray-300 transition
-                           focus:outline-none focus:ring-2 focus:ring-gray-600"
+                className="btn-secondary btn-md"
               >
                 Start new order
               </button>
@@ -340,16 +338,16 @@ export default function App() {
         )
       case 'generating':
         return (
-          <div className="rounded-2xl bg-gray-900 border border-yellow-800/40 p-8 flex flex-col items-center gap-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
-              <svg className="w-6 h-6 text-yellow-400 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <div className="card border-status-warning/40 p-8 flex flex-col items-center gap-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-status-warning/10 flex items-center justify-center">
+              <svg className="w-6 h-6 text-status-warning animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-white font-semibold text-sm">Generating Invoice</h3>
-              <p className="text-gray-500 text-xs mt-1 max-w-[280px]">
+              <h3 className="text-text-primary font-semibold text-sm">Generating Invoice</h3>
+              <p className="text-text-muted text-xs mt-1 max-w-[280px]">
                 Creating invoice from GST calculation…
               </p>
             </div>
@@ -359,13 +357,13 @@ export default function App() {
         return (
           <div className="flex flex-col gap-4">
             {invoice?.gst_mismatch && (
-              <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 p-4 flex items-start gap-3">
-                <svg className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <div className="rounded-xl bg-status-warning/10 border border-status-warning/30 p-4 flex items-start gap-3">
+                <svg className="w-5 h-5 text-status-warning mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 </svg>
                 <div className="flex-1">
-                  <p className="text-xs font-semibold text-amber-400">GST rate mismatch detected</p>
-                  <p className="text-xs text-amber-300 mt-1">
+                  <p className="text-xs font-semibold text-status-warning">GST rate mismatch detected</p>
+                  <p className="text-xs text-status-warning/70 mt-1">
                     Message stated <span className="font-semibold">{invoice.stated_gst_rate ?? 'no'}%</span> GST,
                     but deterministic rules determine <span className="font-semibold">{invoice.determined_gst_rate}%</span>.
                     Calculation uses the <span className="font-semibold">determined rate</span>.
@@ -374,77 +372,77 @@ export default function App() {
               </div>
             )}
 
-            <div className="rounded-2xl bg-gray-900 border border-green-800/40 p-5 flex flex-col gap-4">
+            <div className="card border-status-success/40 p-5 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-white font-semibold text-sm">Invoice Generated</h3>
-                  <p className="text-gray-500 text-xs mt-1">
+                  <h3 className="text-text-primary font-semibold text-sm">Invoice Generated</h3>
+                  <p className="text-text-muted text-xs mt-1">
                     Invoice <span className="font-mono">{invoice?.invoice_number}</span> created on {invoice?.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString('en-IN') : ''}
                   </p>
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded border border-green-700 text-green-400 shrink-0">
+                <span className="badge-info shrink-0">
                   {invoice?.tax_type === 'intra_state' ? 'Intra-state (CGST+SGST)' : 'Inter-state (IGST)'}
                 </span>
               </div>
 
-              <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
+              <div className="card p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Seller</p>
-                  <p className="text-xs text-gray-400">{invoice?.seller?.name}</p>
+                  <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Seller</p>
+                  <p className="text-xs text-text-muted">{invoice?.seller?.name}</p>
                 </div>
-                <div className="text-xs text-gray-500">{invoice?.seller?.address}</div>
-                <div className="text-xs text-gray-500">State: {invoice?.seller?.state}</div>
-                <div className="text-xs text-gray-500">{invoice?.seller?.gstin}</div>
+                <div className="text-xs text-text-muted">{invoice?.seller?.address}</div>
+                <div className="text-xs text-text-muted">State: {invoice?.seller?.state}</div>
+                <div className="text-xs text-text-muted">{invoice?.seller?.gstin}</div>
               </div>
 
               {invoice?.customer?.name && (
-                <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Customer</p>
+                <div className="card p-4 flex flex-col gap-3">
+                  <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Customer</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-white">{invoice.customer.name}</span>
+                    <span className="text-sm font-medium text-text-primary">{invoice.customer.name}</span>
                   </div>
                   {invoice.customer.location && (
-                    <div className="text-xs text-gray-500">Location: {invoice.customer.location}</div>
+                    <div className="text-xs text-text-muted">Location: {invoice.customer.location}</div>
                   )}
                 </div>
               )}
 
-              <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Items</p>
+              <div className="card p-4 flex flex-col gap-3">
+                <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Items</p>
                 <div className="flex flex-col gap-2">
                   {invoice?.items?.map((item, idx) => (
-                    <div key={idx} className="rounded-lg bg-gray-800/50 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div key={idx} className="card p-3 flex flex-col sm:flex-row sm:items-center gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white">{item.name}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm font-medium text-text-primary">{item.name}</p>
+                        <p className="text-xs text-text-muted">
                           Qty: {item.quantity} × ₹{item.unit_price}
                         </p>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs text-right">
                         <div>
-                          <p className="text-gray-500">Subtotal</p>
-                          <p className="text-white">₹{item.subtotal.toFixed(2)}</p>
+                          <p className="text-text-muted">Subtotal</p>
+                          <p className="text-text-primary">₹{item.subtotal.toFixed(2)}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500">GST ({item.gst_rate}%)</p>
-                          <p className="text-white">₹{item.gst_amount.toFixed(2)}</p>
+                          <p className="text-text-muted">GST ({item.gst_rate}%)</p>
+                          <p className="text-text-primary">₹{item.gst_amount.toFixed(2)}</p>
                         </div>
                         {item.tax_type === 'intra_state' ? (
                           <>
                             <div>
-                              <p className="text-gray-500">CGST ({item.cgst_rate}%)</p>
-                              <p className="text-white">₹{item.cgst_amount.toFixed(2)}</p>
+                              <p className="text-text-muted">CGST ({item.cgst_rate}%)</p>
+                              <p className="text-text-primary">₹{item.cgst_amount.toFixed(2)}</p>
                             </div>
                             <div>
-                              <p className="text-gray-500">SGST ({item.sgst_rate}%)</p>
-                              <p className="text-white">₹{item.sgst_amount.toFixed(2)}</p>
+                              <p className="text-text-muted">SGST ({item.sgst_rate}%)</p>
+                              <p className="text-text-primary">₹{item.sgst_amount.toFixed(2)}</p>
                             </div>
                           </>
                         ) : (
                           <>
                             <div className="sm:col-span-2">
-                              <p className="text-gray-500">IGST ({item.igst_rate}%)</p>
-                              <p className="text-white">₹{item.igst_amount.toFixed(2)}</p>
+                              <p className="text-text-muted">IGST ({item.igst_rate}%)</p>
+                              <p className="text-text-primary">₹{item.igst_amount.toFixed(2)}</p>
                             </div>
                             <div className="sm:hidden" />
                           </>
@@ -455,55 +453,41 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-2">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Totals</p>
+              <div className="card p-4 flex flex-col gap-2">
+                <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Totals</p>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                  <dt className="text-gray-500">Subtotal</dt>
-                  <dd className="text-gray-200 text-right">₹{invoice?.subtotal?.toFixed(2)}</dd>
-                  <dt className="text-gray-500">Total GST</dt>
-                  <dd className="text-gray-200 text-right">₹{invoice?.total_gst_amount?.toFixed(2)}</dd>
+                  <dt className="text-text-muted">Subtotal</dt>
+                  <dd className="text-text-primary text-right">₹{invoice?.subtotal?.toFixed(2)}</dd>
+                  <dt className="text-text-muted">Total GST</dt>
+                  <dd className="text-text-primary text-right">₹{invoice?.total_gst_amount?.toFixed(2)}</dd>
                   {invoice?.tax_type === 'intra_state' ? (
                     <>
-                      <dt className="text-gray-500">CGST</dt>
-                      <dd className="text-gray-200 text-right">₹{invoice?.total_cgst?.toFixed(2)}</dd>
-                      <dt className="text-gray-500">SGST</dt>
-                      <dd className="text-gray-200 text-right">₹{invoice?.total_sgst?.toFixed(2)}</dd>
+                      <dt className="text-text-muted">CGST</dt>
+                      <dd className="text-text-primary text-right">₹{invoice?.total_cgst?.toFixed(2)}</dd>
+                      <dt className="text-text-muted">SGST</dt>
+                      <dd className="text-text-primary text-right">₹{invoice?.total_sgst?.toFixed(2)}</dd>
                     </>
                   ) : (
                     <>
-                      <dt className="text-gray-500">IGST</dt>
-                      <dd className="text-gray-200 text-right">₹{invoice?.total_igst?.toFixed(2)}</dd>
+                      <dt className="text-text-muted">IGST</dt>
+                      <dd className="text-text-primary text-right">₹{invoice?.total_igst?.toFixed(2)}</dd>
                     </>
                   )}
-                  <dt className="text-gray-500 font-semibold">Grand Total</dt>
-                  <dd className="text-white font-semibold text-right">₹{invoice?.grand_total?.toFixed(2)}</dd>
+                  <dt className="text-text-muted font-semibold">Grand Total</dt>
+                  <dd className="text-text-primary font-semibold text-right">₹{invoice?.grand_total?.toFixed(2)}</dd>
                 </dl>
               </div>
 
               {invoice?.gst_mismatch && (
-                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-center">
-                  <p className="text-xs text-amber-400">
+                <div className="rounded-lg bg-status-warning/10 border border-status-warning/30 p-3 text-center">
+                  <p className="text-xs text-status-warning">
                     GST rate mismatch: stated {invoice.stated_gst_rate}% → applied {invoice.determined_gst_rate}%
                   </p>
                 </div>
               )}
 
-              <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-center">
-                <p className="text-xs text-green-400">
-                  Calculation uses deterministic rules. AI proposed the extraction; rules decided the tax.
-                </p>
-              </div>
-
-              {invoice?.gst_mismatch && (
-                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-center">
-                  <p className="text-xs text-amber-400">
-                    GST rate mismatch: stated {invoice.stated_gst_rate}% → applied {invoice.determined_gst_rate}%
-                  </p>
-                </div>
-              )}
-
-              <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-center">
-                <p className="text-xs text-green-400">
+              <div className="rounded-lg bg-status-success/10 border border-status-success/30 p-3 text-center">
+                <p className="text-xs text-status-success">
                   Calculation uses deterministic rules. AI proposed the extraction; rules decided the tax.
                 </p>
               </div>
@@ -512,19 +496,14 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleGenerateUpi}
-                  className="flex-1 px-4 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 active:bg-brand-700
-                             text-white text-sm font-semibold transition
-                             focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
-                             focus:ring-offset-gray-900"
+                  className="btn-primary btn-md"
                 >
                   Generate UPI Payment
                 </button>
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="flex-1 px-4 py-2.5 rounded-lg border border-gray-700 text-gray-400 text-sm font-medium
-                             hover:border-gray-600 hover:text-gray-300 transition
-                             focus:outline-none focus:ring-2 focus:ring-gray-600"
+                  className="btn-secondary btn-md"
                 >
                   Start new order
                 </button>
@@ -532,11 +511,11 @@ export default function App() {
             </div>
           </div>
         )
-      case 'upi':
+case 'upi':
         return (
           <div className="flex flex-col gap-4">
             {upi?.upi_deep_link && (
-              <div className="rounded-2xl bg-gray-900 border border-brand-800/40 p-5 flex flex-col gap-4">
+              <div className="card border-brand-800/40 p-5 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-white font-semibold text-sm">UPI Payment Request Ready</h3>
@@ -572,26 +551,26 @@ export default function App() {
                 <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
                   <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Payment Details</p>
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                    <dt className="text-gray-500">Amount</dt>
-                    <dd className="text-gray-200 text-right">₹{upi?.amount?.toFixed(2)}</dd>
-                    <dt className="text-gray-500">Merchant</dt>
-                    <dd className="text-gray-200 text-right">{upi?.merchant_name}</dd>
-                    <dt className="text-gray-500">Merchant VPA</dt>
-                    <dd className="text-gray-200 text-right font-mono text-xs">{upi?.merchant_vpa}</dd>
-                    <dt className="text-gray-500">Status</dt>
-                    <dd className="text-gray-200 text-right">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
-                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
+                    <dt className="text-text-muted">Amount</dt>
+                    <dd className="text-text-primary text-right">₹{upi?.amount?.toFixed(2)}</dd>
+                    <dt className="text-text-muted">Merchant</dt>
+                    <dd className="text-text-primary text-right">{upi?.merchant_name}</dd>
+                    <dt className="text-text-muted">Merchant VPA</dt>
+                    <dd className="text-text-primary text-right font-mono text-xs">{upi?.merchant_vpa}</dd>
+                    <dt className="text-text-muted">Status</dt>
+                    <dd className="text-text-primary text-right">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-warning/20 text-status-warning text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-status-warning"></span>
                         {upi?.status === 'pending' ? 'Awaiting Payment' : upi?.status}
                       </span>
                     </dd>
-                    <dt className="text-gray-500">Expires</dt>
-                    <dd className="text-gray-200 text-right">{upi?.expires_at ? new Date(upi.expires_at).toLocaleTimeString('en-IN') : ''}</dd>
+                    <dt className="text-text-muted">Expires</dt>
+                    <dd className="text-text-primary text-right">{upi?.expires_at ? new Date(upi.expires_at).toLocaleTimeString('en-IN') : ''}</dd>
                   </dl>
                 </div>
 
-                <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-center">
-                  <p className="text-xs text-green-400">
+                <div className="rounded-lg bg-status-success/10 border border-status-success/30 p-3 text-center">
+                  <p className="text-xs text-status-success">
                     UPI deep link and QR code generated. No real payment processed — demo mode only.
                   </p>
                 </div>
@@ -600,17 +579,14 @@ export default function App() {
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="flex-1 px-4 py-2.5 rounded-lg border border-gray-700 text-gray-400 text-sm font-medium
-                               hover:border-gray-600 hover:text-gray-300 transition
-                               focus:outline-none focus:ring-2 focus:ring-gray-600"
+                    className="btn-secondary btn-md"
                   >
                     Start new order
                   </button>
                   <button
                     type="button"
                     disabled={true}
-                    className="flex-1 px-4 py-2.5 rounded-lg bg-gray-700 text-gray-500 text-sm font-medium
-                               cursor-not-allowed"
+                    className="btn-ghost btn-md"
                   >
                     Payment Received
                   </button>
@@ -621,26 +597,24 @@ export default function App() {
         )
       case 'error':
         return (
-          <div className="rounded-2xl bg-gray-900 border border-red-800/40 p-8 flex flex-col items-center gap-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
-              <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <div className="card border-status-error/40 p-8 flex flex-col items-center gap-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-status-error/10 flex items-center justify-center">
+              <svg className="w-6 h-6 text-status-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
             <div>
-              <h3 className="text-white font-semibold text-sm">
+              <h3 className="text-text-primary font-semibold text-sm">
                 {invoiceError ? 'Invoice generation failed' : gstError ? 'GST calculation failed' : 'Could not process order'}
               </h3>
-              <p className="text-gray-400 text-xs mt-1 max-w-[280px] leading-relaxed">
+              <p className="text-text-muted text-xs mt-1 max-w-[280px] leading-relaxed">
                 {invoiceError || gstError || extractionError}
               </p>
             </div>
             <button
               type="button"
               onClick={handleReset}
-              className="px-4 py-2 rounded-lg border border-gray-700 text-gray-300 text-xs
-                         hover:border-gray-600 transition focus:outline-none focus:ring-2
-                         focus:ring-gray-600"
+              className="btn-ghost btn-sm"
             >
               Try again
             </button>
@@ -652,19 +626,19 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-950">
+    <div className="min-h-screen flex flex-col bg-surface">
       <Header />
 
       <main className="flex-1 flex flex-col lg:flex-row gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
 
         {/* Left panel — Order input */}
         <section className="flex flex-col gap-4 lg:w-1/2" aria-label="Order input">
-          <div className="rounded-2xl bg-gray-900 border border-gray-800 p-5 flex flex-col gap-3">
+          <div className="card p-5 flex flex-col gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-gray-200">
+              <h2 className="text-sm font-semibold text-text-primary">
                 New order
               </h2>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+              <p className="text-xs text-text-muted mt-1 leading-relaxed">
                 Describe the order naturally — in English or Hinglish. INVOX will
                 extract the details for you to review.
               </p>
@@ -741,7 +715,7 @@ function WorkflowSteps({ currentState }) {
                 'w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition',
                 done    ? 'bg-brand-500 text-white' :
                 active  ? 'bg-brand-500/20 border border-brand-500 text-brand-500' :
-                          'bg-gray-800 border border-gray-700 text-gray-600',
+                          'bg-surface-overlay border border-border text-text-muted',
               ].join(' ')}>
                 {done ? (
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
@@ -753,7 +727,7 @@ function WorkflowSteps({ currentState }) {
               </div>
               <span className={[
                 'text-xs transition',
-                active ? 'text-gray-200 font-medium' : done ? 'text-gray-400' : 'text-gray-600',
+                active ? 'text-text-primary font-medium' : done ? 'text-text-secondary' : 'text-text-muted',
               ].join(' ')}>
                 {step.label}
               </span>
@@ -761,7 +735,7 @@ function WorkflowSteps({ currentState }) {
             {i < steps.length - 1 && (
               <div className={[
                 'flex-1 h-px mx-2 transition',
-                i < activeIndex ? 'bg-brand-500/40' : 'bg-gray-800',
+                i < activeIndex ? 'bg-brand-500/40' : 'bg-border',
               ].join(' ')} aria-hidden="true" />
             )}
           </React.Fragment>
