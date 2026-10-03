@@ -17,12 +17,13 @@ import EmptyState from './components/EmptyState.jsx'
  *   'confirmed'       — GST calculated, seller sees final breakdown
  *   'generating'      — invoice generation in progress
  *   'invoice'         — invoice generated, shows final invoice
- *   'error'           — extraction/calculation/generation failed
+ *   'upi'             — UPI payment request generated
+ *   'error'           — extraction or calculation or generation failed
  *
- * M7 adds: confirmed → invoice generation → invoice
+ * M8 adds: invoice → UPI payment request → UPI
  */
 export default function App() {
-  const [uiState, setUiState] = useState('idle')  // 'idle' | 'loading' | 'review' | 'calculating' | 'confirmed' | 'generating' | 'invoice' | 'error'
+  const [uiState, setUiState] = useState('idle')  // 'idle' | 'loading' | 'review' | 'calculating' | 'confirmed' | 'generating' | 'invoice' | 'upi' | 'error'
   const [submittedMessage, setSubmittedMessage] = useState('')
   const [extraction, setExtraction] = useState(null)
   const [extractionError, setExtractionError] = useState('')
@@ -31,6 +32,8 @@ export default function App() {
   const [gstError, setGstError] = useState('')
   const [invoice, setInvoice] = useState(null)
   const [invoiceError, setInvoiceError] = useState('')
+  const [upi, setUpi] = useState(null)
+  const [upiError, setUpiError] = useState('')
 
   function handleExtractionStart() {
     setUiState('loading')
@@ -41,6 +44,8 @@ export default function App() {
     setGstError('')
     setInvoice(null)
     setInvoiceError('')
+    setUpi(null)
+    setUpiError('')
   }
 
   function handleExtractionSuccess(result, message) {
@@ -126,6 +131,47 @@ export default function App() {
     }
   }
 
+  async function handleGenerateUpi() {
+    if (!invoice) {
+      setUpiError('Missing invoice')
+      setUiState('error')
+      return
+    }
+
+    setUiState('upi')  // Using 'upi' state for loading
+    setUpiError('')
+
+    try {
+      const response = await fetch('/upi/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoice_number: invoice.invoiceNumber,
+          invoice_amount: invoice.grandTotal,
+          customer_name: invoice.customer?.name,
+          customer_location: invoice.customer?.location,
+          customer_vpa: undefined, // User can enter their VPA in the UPI app
+          merchant_name: undefined, // Uses default
+          merchant_vpa: undefined, // Uses default
+          transaction_note: undefined,
+          currency: 'INR',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'UPI generation failed')
+      }
+
+      setUpi(data)
+      setUiState('upi')  // Show UPI state (same as loading but with result)
+    } catch (err) {
+      setUpiError(err?.message ?? 'UPI generation failed. Please try again.')
+      setUiState('error')
+    }
+  }
+
   function handleReset() {
     setUiState('idle')
     setSubmittedMessage('')
@@ -136,6 +182,8 @@ export default function App() {
     setGstError('')
     setInvoice(null)
     setInvoiceError('')
+    setUpi(null)
+    setUpiError('')
   }
 
   // Determine what to render in the right panel
@@ -446,7 +494,31 @@ export default function App() {
                 </p>
               </div>
 
+              {invoice?.gst_mismatch && (
+                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-center">
+                  <p className="text-xs text-amber-400">
+                    GST rate mismatch: stated {invoice.stated_gst_rate}% → applied {invoice.determined_gst_rate}%
+                  </p>
+                </div>
+              )}
+
+              <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-center">
+                <p className="text-xs text-green-400">
+                  Calculation uses deterministic rules. AI proposed the extraction; rules decided the tax.
+                </p>
+              </div>
+
               <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleGenerateUpi}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 active:bg-brand-700
+                             text-white text-sm font-semibold transition
+                             focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
+                             focus:ring-offset-gray-900"
+                >
+                  Generate UPI Payment
+                </button>
                 <button
                   type="button"
                   onClick={handleReset}
@@ -456,16 +528,95 @@ export default function App() {
                 >
                   Start new order
                 </button>
-                <button
-                  type="button"
-                  disabled={true}
-                  className="flex-1 px-4 py-2.5 rounded-lg bg-gray-700 text-gray-500 text-sm font-medium
-                             cursor-not-allowed"
-                >
-                  Continue to Payment
-                </button>
               </div>
             </div>
+          </div>
+        )
+      case 'upi':
+        return (
+          <div className="flex flex-col gap-4">
+            {upi?.upi_deep_link && (
+              <div className="rounded-2xl bg-gray-900 border border-brand-800/40 p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-semibold text-sm">UPI Payment Request Ready</h3>
+                    <p className="text-gray-500 text-xs mt-1">
+                      Share this with the customer to complete payment
+                    </p>
+                  </div>
+                  <span className="text-xs px-2 py-0.5 rounded border border-brand-700 text-brand-400 shrink-0">
+                    UPI Ready
+                  </span>
+                </div>
+
+                <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">UPI Deep Link</p>
+                  <div className="rounded-lg bg-gray-800 p-3 text-center">
+                    <code className="text-xs text-brand-400 break-all">{upi.upi_deep_link}</code>
+                  </div>
+                  <p className="text-xs text-gray-500 text-center">
+                    Copy this link to share via WhatsApp, SMS, or email
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">QR Code</p>
+                  <div className="flex justify-center">
+                    <img src={upi.qr_code_data} alt="UPI QR Code" className="w-48 h-48" />
+                  </div>
+                  <p className="text-xs text-gray-500 text-center">
+                    Scan with any UPI app (PhonePe, GPay, Paytm, etc.)
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-gray-800/60 border border-gray-800 p-4 flex flex-col gap-3">
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-widest">Payment Details</p>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                    <dt className="text-gray-500">Amount</dt>
+                    <dd className="text-gray-200 text-right">₹{upi?.amount?.toFixed(2)}</dd>
+                    <dt className="text-gray-500">Merchant</dt>
+                    <dd className="text-gray-200 text-right">{upi?.merchant_name}</dd>
+                    <dt className="text-gray-500">Merchant VPA</dt>
+                    <dd className="text-gray-200 text-right font-mono text-xs">{upi?.merchant_vpa}</dd>
+                    <dt className="text-gray-500">Status</dt>
+                    <dd className="text-gray-200 text-right">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
+                        {upi?.status === 'pending' ? 'Awaiting Payment' : upi?.status}
+                      </span>
+                    </dd>
+                    <dt className="text-gray-500">Expires</dt>
+                    <dd className="text-gray-200 text-right">{upi?.expires_at ? new Date(upi.expires_at).toLocaleTimeString('en-IN') : ''}</dd>
+                  </dl>
+                </div>
+
+                <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-3 text-center">
+                  <p className="text-xs text-green-400">
+                    UPI deep link and QR code generated. No real payment processed — demo mode only.
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="flex-1 px-4 py-2.5 rounded-lg border border-gray-700 text-gray-400 text-sm font-medium
+                               hover:border-gray-600 hover:text-gray-300 transition
+                               focus:outline-none focus:ring-2 focus:ring-gray-600"
+                  >
+                    Start new order
+                  </button>
+                  <button
+                    type="button"
+                    disabled={true}
+                    className="flex-1 px-4 py-2.5 rounded-lg bg-gray-700 text-gray-500 text-sm font-medium
+                               cursor-not-allowed"
+                  >
+                    Payment Received
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )
       case 'error':
@@ -544,7 +695,7 @@ export default function App() {
 
 /**
  * WorkflowSteps — lightweight visual progress indicator.
- * Shows the seller where they are in the order→invoice flow.
+ * Shows the seller where they are in the order→invoice→UPI flow.
  */
 function WorkflowSteps({ currentState }) {
   const steps = [
@@ -553,8 +704,9 @@ function WorkflowSteps({ currentState }) {
     { id: 'review',     label: 'Review' },
     { id: 'calculating',label: 'GST' },
     { id: 'generating', label: 'Invoice' },
-    { id: 'invoice',    label: 'Done' },
-    { id: 'confirmed',  label: 'Invoice' }, // legacy support
+    { id: 'invoice',    label: 'UPI' },
+    { id: 'upi',        label: 'Done' },
+    { id: 'confirmed',  label: 'UPI' }, // legacy support
   ]
 
   // Map legacy state to current state for workflow display
@@ -563,6 +715,7 @@ function WorkflowSteps({ currentState }) {
     'calculating': 'calculating',
     'generating': 'generating',
     'invoice': 'invoice',
+    'upi': 'upi',
     'review': 'review',
     'loading': 'loading',
     'idle': 'idle',
