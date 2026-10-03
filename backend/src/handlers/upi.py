@@ -5,6 +5,7 @@ POST /upi/generate
 
 Generates UPI payment request with deep link and QR code.
 Does NOT process real payments - honest/simulated status only.
+Persists UPI info to the associated invoice.
 """
 
 import json
@@ -19,6 +20,7 @@ from src.utils.responses import (
     error_payload_too_large,
     error_internal_server_error,
     error_method_not_allowed,
+    error_not_found,
     build_response,
 )
 from src.services.upi_service import (
@@ -26,6 +28,10 @@ from src.services.upi_service import (
     validate_upi_request,
     DEFAULT_MERCHANT_VPA,
     DEFAULT_MERCHANT_NAME,
+)
+from src.services.persistence_service import (
+    add_upi_payment_info,
+    retrieve_invoice,
 )
 
 
@@ -35,6 +41,7 @@ def handle_upi_generate(event: dict, context: object) -> dict:
     
     Generates UPI payment request with deep link and QR code.
     Does NOT process real payments - honest/simulated status only.
+    Persists UPI info to the associated invoice.
     """
     # Only allow POST
     http_method = event.get('httpMethod', event.get('requestContext', {}).get('http', {}).get('method', ''))
@@ -89,5 +96,20 @@ def handle_upi_generate(event: dict, context: object) -> dict:
         # Log error but don't expose details
         print(f"UPI generation error: {type(e).__name__}: {e}")
         return error_internal_server_error()
+
+    # Persist UPI info to the associated invoice
+    invoice_number = data.get('invoice_number')
+    if invoice_number:
+        try:
+            # First retrieve the invoice to get its ID
+            invoice = retrieve_invoice(invoice_number)
+            if invoice:
+                # Add UPI info to the invoice
+                add_upi_payment_info(invoice.invoice_number, upi_response)
+            else:
+                print(f"Warning: Invoice not found for UPI persistence: {invoice_number}")
+        except Exception as e:
+            # Log but don't fail the request - UPI response is still valid
+            print(f"UPI persistence warning: {type(e).__name__}: {e}")
 
     return build_response(200, upi_response)

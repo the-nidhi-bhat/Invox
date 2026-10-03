@@ -50,6 +50,21 @@ class UPIResponse:
     created_at: str  # ISO format
     expires_at: str  # ISO format (e.g., 15 minutes)
 
+    def to_dict(self) -> dict:
+        return {
+            'upiRequestId': self.upi_request_id,
+            'upiDeepLink': self.upi_deep_link,
+            'qrCodeData': self.qr_code_data,
+            'amount': self.amount,
+            'currency': self.currency,
+            'merchantName': self.merchant_name,
+            'merchantVpa': self.merchant_vpa,
+            'transactionNote': self.transaction_note,
+            'status': self.status,
+            'createdAt': self.created_at,
+            'expiresAt': self.expires_at,
+        }
+
 
 # Export for convenience
 __all__ = [

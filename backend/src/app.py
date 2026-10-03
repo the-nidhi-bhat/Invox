@@ -7,14 +7,18 @@ Supports:
 - POST /extract
 - POST /gst/calculate
 - POST /invoice/generate
+- GET /invoice/{invoice_id}
+- POST /upi/generate
 - OPTIONS (CORS preflight)
 """
 
 import json
+from typing import Optional
 from src.handlers.health import handle_health
 from src.handlers.extract import handle_extract
 from src.handlers.gst import handle_gst_calculate
-from src.handlers.invoice import handle_invoice_generate
+from src.handlers.invoice import handle_invoice_generate, handle_invoice_get
+from src.handlers.upi import handle_upi_generate
 from src.utils.responses import (
     error_not_found,
     error_method_not_allowed,
@@ -22,14 +26,23 @@ from src.utils.responses import (
 )
 
 
+def _match_invoice_path(path: str) -> Optional[str]:
+    """Match /invoice/{invoice_id} pattern and return invoice_id."""
+    if path.startswith('/invoice/'):
+        invoice_id = path[len('/invoice/'):]
+        if invoice_id and invoice_id != 'generate':
+            return invoice_id
+    return None
+
+
 def route_request(event: dict, context: object) -> dict:
     """
     Route the incoming API Gateway request to the appropriate handler.
-    
+
     Args:
         event: API Gateway Lambda proxy event
         context: Lambda context object
-        
+
     Returns:
         Lambda proxy response
     """
@@ -37,7 +50,7 @@ def route_request(event: dict, context: object) -> dict:
     # Support both REST API (httpMethod) and HTTP API (requestContext.http.method) formats
     http_method = event.get('httpMethod') or event.get('requestContext', {}).get('http', {}).get('method', '')
     path = event.get('path') or event.get('rawPath') or event.get('requestContext', {}).get('http', {}).get('path', '')
-    
+
     # Normalize path (API Gateway may include stage prefix)
     if path.startswith('/prod') or path.startswith('/dev') or path.startswith('/test'):
         # Remove stage prefix if present
@@ -60,28 +73,38 @@ def route_request(event: dict, context: object) -> dict:
         if http_method == 'GET':
             return handle_health(event, context)
         return error_method_not_allowed()
-    
-    # Route to handlers
-    if path == '/health':
-        if http_method == 'GET':
-            return handle_health(event, context)
-        return error_method_not_allowed()
-    
+
     if path == '/extract':
         if http_method == 'POST':
             return handle_extract(event, context)
         return error_method_not_allowed()
-    
+
     if path == '/gst/calculate':
         if http_method == 'POST':
             return handle_gst_calculate(event, context)
         return error_method_not_allowed()
-    
+
     if path == '/invoice/generate':
         if http_method == 'POST':
             return handle_invoice_generate(event, context)
         return error_method_not_allowed()
-    
+
+    if path == '/upi/generate':
+        if http_method == 'POST':
+            return handle_upi_generate(event, context)
+        return error_method_not_allowed()
+
+    # Handle GET /invoice/{invoice_id}
+    invoice_id = _match_invoice_path(path)
+    if invoice_id:
+        # Inject pathParameters for the handler
+        if 'pathParameters' not in event:
+            event['pathParameters'] = {}
+        event['pathParameters']['invoice_id'] = invoice_id
+        if http_method == 'GET':
+            return handle_invoice_get(event, context)
+        return error_method_not_allowed()
+
     # Not found
     return error_not_found('NOT_FOUND', f'Endpoint not found: {http_method} {path}')
 
@@ -89,7 +112,7 @@ def route_request(event: dict, context: object) -> dict:
 def lambda_handler(event: dict, context: object) -> dict:
     """
     AWS Lambda entry point.
-    
+
     Wraps route_request with top-level error handling to ensure
     all responses are properly formatted JSON with CORS headers.
     """

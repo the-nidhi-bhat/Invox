@@ -124,13 +124,18 @@ class InvoiceResponse:
     tax_type: str
     seller_state: str
     customer_state: Optional[str]
-    stated_gst_rate: Optional[float]
-    determined_gst_rate: float
-    gst_mismatch: bool
-    mismatch_details: List[str]
+    stated_gst_rate: Optional[float] = None
+    determined_gst_rate: float = 0.0
+    gst_mismatch: bool = False
+    mismatch_details: List[str] = field(default_factory=list)
+    # Persistence timestamps (added by M9)
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    # UPI payment info (optional)
+    upi_info: Optional[dict] = None
 
     def to_dict(self) -> dict:
-        return {
+        result = {
             'invoiceNumber': self.invoice_number,
             'invoiceDate': self.invoice_date,
             'status': self.status,
@@ -151,6 +156,13 @@ class InvoiceResponse:
             'gstMismatch': self.gst_mismatch,
             'mismatchDetails': self.mismatch_details,
         }
+        if self.created_at:
+            result['createdAt'] = self.created_at
+        if self.updated_at:
+            result['updatedAt'] = self.updated_at
+        if self.upi_info:
+            result['upiInfo'] = self.upi_info
+        return result
 
 
 # Export for convenience

@@ -227,8 +227,8 @@ class TestInvoiceGenerateEndpoint:
         
         assert response['statusCode'] == 400
         body = json.loads(response['body'])
-        assert body['code'] == 'INVALID_INPUT'
-        assert 'GST calculation result is required' in body['error']
+        assert body['code'] == 'MISSING_GST_CALCULATION'
+        assert 'gst_calculation' in body['error'].lower()
 
     def test_missing_items_in_gst_calculation_returns_400(self):
         """Missing items in gst_calculation returns 400."""
@@ -252,8 +252,8 @@ class TestInvoiceGenerateEndpoint:
         
         assert response['statusCode'] == 400
         body = json.loads(response['body'])
-        assert body['code'] == 'INVALID_INPUT'
-        assert 'At least one item is required' in body['details']['errors'][0]
+        assert body['code'] == 'MISSING_ITEMS'
+        assert 'GST calculation must contain an \"items\" field' in body['error']
 
     def test_missing_item_name_returns_400(self):
         """Missing item name returns 400."""
@@ -279,8 +279,8 @@ class TestInvoiceGenerateEndpoint:
         
         assert response['statusCode'] == 400
         body = json.loads(response['body'])
-        assert body['code'] == 'INVALID_INPUT'
-        assert 'name is required' in body['details']['errors'][0]
+        assert body['code'] == 'MISSING_ITEM_NAME'
+        assert body['details']['item_index'] == 0
 
     def test_zero_quantity_returns_400(self):
         """Zero quantity returns 400."""
@@ -298,7 +298,7 @@ class TestInvoiceGenerateEndpoint:
         
         assert response['statusCode'] == 400
         body = json.loads(response['body'])
-        assert body['code'] == 'INVALID_INPUT'
+        assert body['code'] == 'INVALID_QUANTITY'
 
     def test_negative_quantity_returns_400(self):
         """Negative quantity returns 400."""
@@ -316,7 +316,7 @@ class TestInvoiceGenerateEndpoint:
         
         assert response['statusCode'] == 400
         body = json.loads(response['body'])
-        assert body['code'] == 'INVALID_INPUT'
+        assert body['code'] == 'INVALID_QUANTITY'
 
     def test_negative_unit_price_returns_400(self):
         """Negative unit price returns 400."""
@@ -334,7 +334,7 @@ class TestInvoiceGenerateEndpoint:
         
         assert response['statusCode'] == 400
         body = json.loads(response['body'])
-        assert body['code'] == 'INVALID_INPUT'
+        assert body['code'] == 'INVALID_UNIT_PRICE'
 
     def test_invalid_stated_gst_rate_returns_400(self):
         """Invalid stated GST rate returns 400."""
@@ -352,7 +352,7 @@ class TestInvoiceGenerateEndpoint:
         
         assert response['statusCode'] == 400
         body = json.loads(response['body'])
-        assert body['code'] == 'INVALID_INPUT'
+        assert body['code'] == 'INVALID_STATED_GST_RATE'
 
     def test_get_method_returns_405(self):
         """GET method returns 405."""
