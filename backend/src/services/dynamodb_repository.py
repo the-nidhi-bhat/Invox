@@ -92,82 +92,123 @@ class InvoiceRepository:
     
     def _check_idempotency(self, idempotency_key: str) -> Optional[PersistedInvoice]:
         """
-        Check if an invoice with the same idempotency key already exists.
-        
-        Note: This requires a GSI on idempotency_key for efficient lookup.
-        For MVP, we'll do a scan (acceptable for low volume).
-        In production, add a GSI on idempotency_key.
+        Check legacy invoices written before transactional idempotency records.
         """
         if not idempotency_key:
             return None
-        
-        try:
-            # Scan for matching idempotency_key
-            # Note: This is O(n) - for production add GSI on idempotency_key
-            response = self.client.scan(
-                TableName=self.table_name,
-                FilterExpression='idempotency_key = :key',
-                ExpressionAttributeValues={':key': {'S': idempotency_key}},
-                Limit=1,
-            )
+
+        record = self._get_idempotency_record(idempotency_key)
+        if record:
+            invoice_id = record.get('target_invoice_id', {}).get('S')
+            invoice = self.get_invoice(invoice_id) if invoice_id else None
+            if invoice:
+                return invoice
+            raise RuntimeError('Idempotency record exists without its invoice')
+
+        scan_kwargs = {
+            'TableName': self.table_name,
+            'ConsistentRead': True,
+            'FilterExpression': (
+                'idempotency_key = :key AND attribute_not_exists(record_type)'
+            ),
+            'ExpressionAttributeValues': {':key': {'S': idempotency_key}},
+        }
+        while True:
+            response = self.client.scan(**scan_kwargs)
             items = response.get('Items', [])
             if items:
                 return PersistedInvoice.from_dynamodb_item(items[0])
-        except ClientError:
-            # If scan fails (e.g., no GSI), just return None and allow creation
-            pass
-        return None
-    
+
+            last_evaluated_key = response.get('LastEvaluatedKey')
+            if not last_evaluated_key:
+                return None
+            scan_kwargs['ExclusiveStartKey'] = last_evaluated_key
+
+    def _get_idempotency_record(self, idempotency_key: str) -> Optional[dict]:
+        response = self.client.get_item(
+            TableName=self.table_name,
+            Key={'invoice_id': {'S': f'IDEMPOTENCY#{idempotency_key}'}},
+            ConsistentRead=True,
+        )
+        return response.get('Item')
+
+    def _write_invoice_idempotently(
+        self,
+        invoice: PersistedInvoice,
+        item: dict,
+    ) -> PersistedInvoice:
+        idempotency_key = invoice.idempotency_key
+        if not idempotency_key:
+            raise RuntimeError('Invoice idempotency key is required')
+
+        idempotency_record = {
+            'invoice_id': {'S': f'IDEMPOTENCY#{idempotency_key}'},
+            'record_type': {'S': 'idempotency'},
+            'idempotency_key': {'S': idempotency_key},
+            'target_invoice_id': {'S': invoice.invoice_id},
+        }
+        transaction = [
+            {
+                'Put': {
+                    'TableName': self.table_name,
+                    'Item': item,
+                    'ConditionExpression': 'attribute_not_exists(invoice_id)',
+                }
+            },
+            {
+                'Put': {
+                    'TableName': self.table_name,
+                    'Item': idempotency_record,
+                    'ConditionExpression': 'attribute_not_exists(invoice_id)',
+                }
+            },
+        ]
+        for attempt in range(3):
+            try:
+                self.client.transact_write_items(TransactItems=transaction)
+                return invoice
+            except ClientError as error:
+                error_code = error.response.get('Error', {}).get('Code')
+                if error_code != 'TransactionCanceledException':
+                    raise RuntimeError(f"Failed to save invoice: {error_code}") from error
+
+                existing_record = self._get_idempotency_record(idempotency_key)
+                if existing_record:
+                    existing_invoice_id = existing_record.get('target_invoice_id', {}).get('S')
+                    existing_invoice = (
+                        self.get_invoice(existing_invoice_id) if existing_invoice_id else None
+                    )
+                    if existing_invoice:
+                        return existing_invoice
+
+                cancellation_reasons = error.response.get('CancellationReasons', [])
+                has_transaction_conflict = any(
+                    reason.get('Code') == 'TransactionConflict'
+                    for reason in cancellation_reasons
+                )
+                if not has_transaction_conflict or attempt == 2:
+                    break
+
+        existing_invoice = self.get_invoice(invoice.invoice_id)
+        if existing_invoice and existing_invoice.idempotency_key == idempotency_key:
+            return existing_invoice
+        raise RuntimeError('Invoice creation conflict - please retry')
+
     def save_invoice(self, invoice: PersistedInvoice) -> PersistedInvoice:
         """
-        Save (create or update) an invoice in DynamoDB.
-        
-        Args:
-            invoice: PersistedInvoice to save
-            
-        Returns:
-            The saved invoice (with updated timestamps)
-            
-        Raises:
-            RuntimeError: If persistence fails
+        Save an invoice with its idempotency claim in one atomic transaction.
         """
         self._verify_table()
-        
-        # Generate idempotency key if not provided
+
         if not invoice.idempotency_key:
             invoice.idempotency_key = self._generate_idempotency_key(invoice.to_dynamodb_item())
-        
-        # Check for existing invoice with same idempotency key
+
         existing = self._check_idempotency(invoice.idempotency_key)
-        if existing and existing.invoice_id != invoice.invoice_id:
-            # Return existing invoice (idempotent behavior)
+        if existing:
             return existing
-        
-        # Update timestamp
+
         invoice.updated_at = datetime.utcnow().isoformat()
-        
-        # Convert to DynamoDB item
-        item = invoice.to_dynamodb_item()
-        
-        try:
-            self.client.put_item(
-                TableName=self.table_name,
-                Item=item,
-                # ConditionExpression='attribute_not_exists(invoice_id) OR invoice_id = :id',
-                # ExpressionAttributeValues={':id': {'S': invoice.invoice_id}},
-            )
-        except ClientError as e:
-            error_code = e.response['Error']['Code']
-            if error_code == 'ConditionalCheckFailedException':
-                # Another request created this invoice concurrently
-                # Fetch and return the existing one
-                existing = self.get_invoice(invoice.invoice_id)
-                if existing:
-                    return existing
-                raise RuntimeError("Invoice creation conflict - please retry")
-            raise RuntimeError(f"Failed to save invoice: {error_code}")
-        
-        return invoice
+        return self._write_invoice_idempotently(invoice, invoice.to_dynamodb_item())
     
     def get_invoice(self, invoice_id: str) -> Optional[PersistedInvoice]:
         """

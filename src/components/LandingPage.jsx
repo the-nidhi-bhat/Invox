@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 
 /**
  * LandingPage — Product landing page shown before the invoicing workflow.
@@ -6,85 +6,81 @@ import React, { useState } from 'react'
  */
 export default function LandingPage({ onEnterApp }) {
   return (
-    <div className="min-h-screen flex flex-col bg-surface">
-      <Header onEnterApp={onEnterApp} />
-      <main className="flex-1 flex flex-col">
-{/* Hero Section */}
-        <section className="relative py-14 md:py-20 px-4 md:px-6">
-          <div className="max-w-4xl mx-auto text-center">
+    <div className="flex min-h-[calc(100dvh-4rem)] flex-col bg-surface">
+      <main className="flex flex-1 flex-col">
+        <section className="px-4 py-10 md:px-6 md:py-16">
+          <div className="container grid items-center gap-10 xl:grid-cols-[1.1fr_0.9fr] xl:gap-12">
             <div className="animate-fade-in">
-              <h1 className="text-h2 md:text-h1 font-bold text-text-primary tracking-tight mb-5">
-                Turn messy business messages into ready-to-review invoices
+              <p className="mb-4 text-sm font-semibold text-brand-500">Invoicing, from order to payment</p>
+              <h1 className="mb-5 max-w-[680px] text-4xl font-bold leading-tight tracking-tight text-text-primary xl:text-[2.5rem]">
+                AI-assisted invoicing from messy business messages.
               </h1>
-              <p className="text-body-lg text-text-secondary max-w-2xl mx-auto mb-8">
-                Type orders naturally in English or Hinglish. INVOX extracts the details, you review and confirm, deterministic GST does the math.
+              <p className="mb-7 max-w-lg text-base leading-relaxed text-text-secondary md:text-lg">
+                Turn English or Hinglish orders into invoices. Review every detail before GST rules are applied and payment is requested.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <button
                   onClick={onEnterApp}
-                  className="btn-primary btn-lg w-full sm:w-auto"
+                  className="btn-primary btn-lg w-full whitespace-nowrap sm:w-auto"
                 >
-                  Open Workspace
+                  Open workspace
                 </button>
                 <button
                   onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="btn-secondary btn-lg w-full sm:w-auto"
+                  className="btn-secondary btn-lg w-full whitespace-nowrap sm:w-auto"
                 >
-                  See how it works
+                  See the workflow
                 </button>
               </div>
             </div>
 
-            {/* Product preview - matches actual app output */}
-            <div className="mt-12 animate-slide-up">
-              <div className="card overflow-hidden max-w-3xl mx-auto">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="animate-slide-up">
+              <div className="card overflow-hidden">
+                <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
                   <div>
-                    <p className="text-xs text-text-muted uppercase tracking-widest">Invoice</p>
-                    <p className="font-bold text-text-primary text-lg font-mono">INV-20240115-0001</p>
-                    <p className="text-xs text-text-muted mt-0.5">15 Jan 2024</p>
+                    <p className="text-xs font-medium text-text-muted">Sample invoice</p>
+                    <p className="font-mono text-lg font-bold text-text-primary">INV-20240115-0001</p>
+                    <p className="mt-0.5 text-xs text-text-muted">15 Jan 2024</p>
                   </div>
-                  <span className="badge-warning">Pending</span>
+                  <span className="badge-neutral">Draft</span>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-xs text-text-muted uppercase tracking-widest border-b border-border">
-                        <th className="text-left px-5 py-3 font-medium">Item</th>
-                        <th className="text-right px-3 py-3 font-medium">Qty</th>
-                        <th className="text-right px-3 py-3 font-medium">Rate</th>
-                        <th className="text-right px-3 py-3 font-medium">GST</th>
-                        <th className="text-right px-5 py-3 font-medium">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-border/60">
-                        <td className="px-5 py-3 text-text-primary">Mouse</td>
-                        <td className="px-3 py-3 text-right text-text-muted font-mono tabular-nums">50</td>
-                        <td className="px-3 py-3 text-right text-text-muted font-mono tabular-nums">₹450.00</td>
-                        <td className="px-3 py-3 text-right text-text-muted font-mono tabular-nums">18%</td>
-                        <td className="px-5 py-3 text-right text-text-primary font-medium font-mono tabular-nums">₹26,550.00</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div className="px-5 py-4 border-t border-border flex flex-col items-end gap-1">
-                  <div className="flex gap-8 text-sm text-text-muted">
-                    <span>Subtotal</span>
-                    <span className="font-mono tabular-nums">₹22,500.00</span>
+                <div className="px-5 py-4">
+                  <div className="flex items-start justify-between gap-4 border-b border-border-muted pb-4">
+                    <div className="min-w-0">
+                      <p className="font-medium text-text-primary">Mouse</p>
+                      <p className="mt-1 text-xs text-text-muted">50 units at ₹450.00 each</p>
+                      <p className="mt-1 text-xs text-text-muted">GST 18%</p>
+                    </div>
+                    <p className="shrink-0 font-mono text-sm font-medium tabular-nums text-text-primary">₹26,550.00</p>
                   </div>
-                  <div className="flex gap-8 text-sm text-text-muted">
-                    <span>GST (18%)</span>
-                    <span className="font-mono tabular-nums">₹4,050.00</span>
-                  </div>
-                  <div className="flex gap-8 text-base font-bold text-text-primary mt-1 pt-2 border-t border-border w-full justify-end">
-                    <span>Total</span>
-                    <span className="text-brand-500 font-mono tabular-nums">₹26,550.00</span>
+                  <div className="ml-auto flex max-w-xs flex-col gap-2 pt-4 text-sm">
+                    <div className="flex justify-between gap-6 text-text-secondary">
+                      <span>Subtotal</span>
+                      <span className="font-mono tabular-nums">₹22,500.00</span>
+                    </div>
+                    <div className="flex justify-between gap-6 text-text-secondary">
+                      <span>GST</span>
+                      <span className="font-mono tabular-nums">₹4,050.00</span>
+                    </div>
+                    <div className="mt-1 flex justify-between gap-6 border-t border-border pt-3 font-semibold text-text-primary">
+                      <span>Total</span>
+                      <span className="font-mono tabular-nums text-brand-500">₹26,550.00</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+          <ol className="container mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6" aria-label="Invoice workflow">
+            {['Order message', 'AI extraction', 'Your review', 'GST rules', 'Invoice', 'Payment'].map((step, index) => (
+              <li key={step} className="flex min-w-0 items-center gap-2 text-xs font-medium text-text-secondary">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-surface-elevated font-mono text-[11px] text-brand-500">
+                  {index + 1}
+                </span>
+                <span className="leading-tight">{step}</span>
+              </li>
+            ))}
+          </ol>
         </section>
 
         {/* Product Principle */}
@@ -97,7 +93,7 @@ export default function LandingPage({ onEnterApp }) {
               AI proposes. Rules decide. You stay in control.
             </h2>
             <p className="text-body text-text-secondary max-w-2xl mx-auto">
-              AI extracts intent from messy messages. Deterministic rules calculate GST and totals. You review, edit, and approve — nothing ships without your sign-off.
+              AI extracts intent from messy messages. Deterministic rules calculate GST and totals. You review, edit, and approve before anything moves forward.
             </p>
           </div>
         </section>
@@ -108,33 +104,33 @@ export default function LandingPage({ onEnterApp }) {
             <div className="text-center mb-12">
               <h2 className="text-h3 font-bold text-text-primary mb-3">How it works</h2>
               <p className="text-body text-text-secondary max-w-2xl mx-auto">
-                Four steps from messy message to payment request
+                From the first message through invoice creation and payment request.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5 md:gap-6">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4 md:gap-6">
               <StepCard
                 number="01"
                 title="Message"
-                description="Type or paste your order naturally — English, Hinglish, abbreviations, any format."
+                description="Type or paste your order naturally in English or Hinglish."
                 icon={<MessageIcon />}
               />
               <StepCard
                 number="02"
                 title="Review"
-                description="AI extracts structured data. You review, edit, and confirm every field before proceeding."
+                description="AI extracts the order. Review and edit every field before continuing."
                 icon={<ReviewIcon />}
               />
               <StepCard
                 number="03"
                 title="GST Validation"
-                description="Deterministic engine applies correct GST rates. Mismatches are flagged, rules decide."
+                description="GST rules determine the applicable rate. Any mismatch is shown clearly."
                 icon={<GstIcon />}
               />
               <StepCard
                 number="04"
                 title="Invoice + UPI"
-                description="Professional invoice generated. UPI deep link and QR code created for instant payment request."
+                description="Create a professional invoice and a UPI payment request with a QR code."
                 icon={<UpiIcon />}
               />
             </div>
@@ -151,7 +147,7 @@ export default function LandingPage({ onEnterApp }) {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               <PrincipleCard
                 icon={<HumanIcon />}
                 title="Human review first"
@@ -183,22 +179,6 @@ export default function LandingPage({ onEnterApp }) {
                 description="Invoices and UPI requests persisted to DynamoDB with idempotency protection."
               />
             </div>
-          </div>
-        </section>
-
-        {/* Final CTA */}
-        <section className="py-14 md:py-20 px-4 md:px-6">
-          <div className="max-w-xl mx-auto text-center">
-            <h2 className="text-h3 font-bold text-text-primary mb-5">Ready to create your first invoice?</h2>
-            <p className="text-body text-text-secondary mb-8">
-              No signup required. No credit card. Just type your order and go.
-            </p>
-            <button
-              onClick={onEnterApp}
-              className="btn-primary btn-lg"
-            >
-              Create an invoice
-            </button>
           </div>
         </section>
 

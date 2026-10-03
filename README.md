@@ -20,6 +20,8 @@ Small business invoicing in India is messy. Sellers communicate orders in inform
 
 INVOX treats the order message as the input, not a form. The seller describes the order naturally. Bedrock interprets it. The seller reviews the extracted data, corrects anything the AI got wrong, and the backend handles the rest: GST validation, invoice calculation, and payment request generation.
 
+During review, the customer’s full state is entered separately from their city/location so the GST engine can determine intra-state versus inter-state treatment without guessing.
+
 ---
 
 ## Core Workflow
@@ -476,7 +478,9 @@ python -m pytest -v
 
 ### Environment variables
 
-No environment variables are required to run the current frontend in development mode.
+`VITE_API_BASE_URL` is optional when the API is available at the same origin as the frontend. For a direct API Gateway deployment, set it to the SAM `ApiUrl` output (for example, the URL ending in `/prod/`) before building the frontend. When unset, the app uses same-origin API paths. In local development without this value, order extraction uses a clearly labeled deterministic demo fixture; with it configured, extraction also uses the backend `/extract` endpoint.
+
+No AWS credentials or other secrets belong in frontend environment variables; Vite values are included in the browser build.
 
 Backend environment variables (for AWS deployment):
 

@@ -5,16 +5,16 @@
 @layer base {
   :root {
     /* Light mode - sophisticated, premium, clean */
-    --color-surface: #fafafa;
+    --color-surface: #f6f7f9;
     --color-surface-elevated: #ffffff;
-    --color-surface-overlay: #f5f5f5;
-    --color-surface-sunken: #eeeeee;
-    --color-border: #e8e8e8;
-    --color-border-muted: #f0f0f0;
-    --color-border-strong: #d0d0d0;
-    --color-text-primary: #1a1a2e;
-    --color-text-secondary: #4a4a5a;
-    --color-text-muted: #888899;
+    --color-surface-overlay: #f0f2f5;
+    --color-surface-sunken: #e9ecf1;
+    --color-border: #dfe3e9;
+    --color-border-muted: #ebedf1;
+    --color-border-strong: #c8ced8;
+    --color-text-primary: #20232b;
+    --color-text-secondary: #4d5562;
+    --color-text-muted: #626a78;
     --color-text-inverse: #fafafa;
 
     /* Brand - sophisticated indigo/blue */
@@ -30,16 +30,16 @@
     --color-brand-900: #312e81;
 
     /* Status colors - refined */
-    --color-status-success: #059669;
+    --color-status-success: #047857;
     --color-status-success-bg: #ecfdf5;
     --color-status-success-border: #a7f3d0;
-    --color-status-warning: #d97706;
+    --color-status-warning: #92400e;
     --color-status-warning-bg: #fffbeb;
     --color-status-warning-border: #fde68a;
-    --color-status-error: #dc2626;
+    --color-status-error: #b91c1c;
     --color-status-error-bg: #fef2f2;
     --color-status-error-border: #fecaca;
-    --color-status-info: #0284c7;
+    --color-status-info: #0369a1;
     --color-status-info-bg: #f0f9ff;
     --color-status-info-border: #bae6fd;
 
@@ -71,17 +71,17 @@
 
   .dark {
     /* Dark mode - deep, sophisticated, high contrast */
-    --color-surface: #0a0a0f;
-    --color-surface-elevated: #111118;
-    --color-surface-overlay: #1a1a24;
-    --color-surface-sunken: #0f0f14;
-    --color-border: #2a2a3a;
-    --color-border-muted: #1e1e28;
-    --color-border-strong: #3a3a4a;
-    --color-text-primary: #f5f5f5;
-    --color-text-secondary: #b8b8c8;
-    --color-text-muted: #7a7a8a;
-    --color-text-inverse: #0a0a0f;
+    --color-surface: #101319;
+    --color-surface-elevated: #171c24;
+    --color-surface-overlay: #202630;
+    --color-surface-sunken: #12171e;
+    --color-border: #2d3541;
+    --color-border-muted: #252c36;
+    --color-border-strong: #414b59;
+    --color-text-primary: #f1f3f6;
+    --color-text-secondary: #c0c7d1;
+    --color-text-muted: #9aa4b2;
+    --color-text-inverse: #101319;
 
     /* Brand - slightly brighter for dark mode */
     --color-brand-50: #1e1e2e;
@@ -126,24 +126,13 @@
 
   html {
     @apply scroll-smooth;
-    perspective: var(--perspective);
   }
 
   body {
     @apply bg-surface text-text-primary font-sans antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-brand-50) 0%, transparent 50%),
-      radial-gradient(ellipse 60% 40% at 100% 100%, var(--color-brand-100) 0%, transparent 50%);
-    background-attachment: fixed;
     transition: background-color var(--duration-normal) var(--ease-out),
                 color var(--duration-normal) var(--ease-out);
-  }
-
-  .dark body {
-    background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-brand-50) 0%, transparent 50%),
-      radial-gradient(ellipse 60% 40% at 100% 100%, var(--color-brand-100) 0%, transparent 50%);
   }
 
   ::selection {
@@ -190,7 +179,7 @@
     @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl
          transition-all duration-normal focus-visible:outline-none
          focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
-         focus-visible:ring-offset-surface disabled:opacity-40 disabled:cursor-not-allowed
+         focus-visible:ring-offset-surface disabled:cursor-not-allowed
          relative overflow-hidden;
     box-shadow: var(--shadow-sm);
   }
@@ -215,9 +204,14 @@
     box-shadow: var(--shadow-sm), 0 0 0 1px var(--color-brand-700);
   }
 
-  .btn-primary:hover {
+  .btn-primary:hover:not(:disabled) {
     box-shadow: var(--shadow-md), 0 0 0 1px var(--color-brand-700);
     transform: translateY(-1px);
+  }
+
+  .btn-primary:disabled {
+    @apply border border-border bg-surface-overlay text-text-muted;
+    box-shadow: none;
   }
 
   .btn-secondary {
@@ -227,9 +221,14 @@
     box-shadow: var(--shadow-sm);
   }
 
-  .btn-secondary:hover {
+  .btn-secondary:hover:not(:disabled) {
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
+  }
+
+  .btn-secondary:disabled {
+    @apply bg-surface-overlay text-text-muted;
+    box-shadow: none;
   }
 
   .btn-ghost {
@@ -237,8 +236,12 @@
          hover:text-text-primary focus-visible:ring-border-muted;
   }
 
-  .btn-ghost:hover {
+  .btn-ghost:hover:not(:disabled) {
     transform: translateY(-1px);
+  }
+
+  .btn-ghost:disabled {
+    @apply text-text-muted;
   }
 
   .btn-destructive {
@@ -299,12 +302,8 @@
   .card {
     @apply rounded-2xl bg-surface-elevated border border-border;
     box-shadow: var(--shadow-sm);
-    transition: all var(--duration-normal) var(--ease-out);
-  }
-
-  .card:hover {
-    box-shadow: var(--shadow-md);
-    border-color: var(--color-border-strong);
+    transition: box-shadow var(--duration-normal) var(--ease-out),
+                border-color var(--duration-normal) var(--ease-out);
   }
 
   .card-elevated {
@@ -324,7 +323,7 @@
 
   .card-interactive:hover {
     box-shadow: var(--shadow-lg);
-    transform: translateY(-2px) translateZ(10px);
+    transform: translateY(-2px);
   }
 
   .card-sunken {

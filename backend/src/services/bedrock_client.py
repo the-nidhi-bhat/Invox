@@ -42,13 +42,19 @@ def get_bedrock_config() -> BedrockConfig:
     Get Bedrock configuration from environment variables.
     
     Environment variables:
-    - BEDROCK_MODEL_ID: Model ID to use (default: claude-3-haiku)
-    - AWS_REGION: AWS region (default: from boto3 session)
+    - BEDROCK_MODEL_ID: Model ID to use (default: India Claude Haiku 4.5 profile)
+    - BEDROCK_REGION: Region for the Bedrock Runtime client
     - BEDROCK_MAX_TOKENS: Max tokens for response (default: 1024)
     - BEDROCK_TEMPERATURE: Temperature for generation (default: 0.0)
     """
-    model_id = os.environ.get('BEDROCK_MODEL_ID', 'anthropic.claude-3-haiku-20240307-v1:0')
-    region = os.environ.get('AWS_REGION', os.environ.get('AWS_DEFAULT_REGION', 'us-east-1'))
+    model_id = os.environ.get(
+        'BEDROCK_MODEL_ID',
+        'in.anthropic.claude-haiku-4-5-20251001-v1:0',
+    )
+    region = os.environ.get(
+        'BEDROCK_REGION',
+        os.environ.get('AWS_REGION', os.environ.get('AWS_DEFAULT_REGION', 'ap-south-1')),
+    )
     max_tokens = int(os.environ.get('BEDROCK_MAX_TOKENS', '1024'))
     temperature = float(os.environ.get('BEDROCK_TEMPERATURE', '0.0'))
     top_p = float(os.environ.get('BEDROCK_TOP_P', '0.1'))

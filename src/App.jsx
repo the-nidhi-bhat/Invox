@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import Header from './components/Header.jsx'
 import OrderComposer from './components/OrderComposer.jsx'
 import LoadingState from './components/LoadingState.jsx'
@@ -6,6 +6,12 @@ import ExtractionReview from './components/ExtractionReview.jsx'
 import EmptyState from './components/EmptyState.jsx'
 import LandingPage from './components/LandingPage.jsx'
 import { useTheme } from './context/ThemeContext.jsx'
+import {
+  normalizeGstResponse,
+  normalizeInvoiceResponse,
+  normalizeUpiResponse,
+  postJson,
+} from './services/api.js'
 
 /**
  * App — INVOX root component.
@@ -29,6 +35,7 @@ import { useTheme } from './context/ThemeContext.jsx'
 export default function App() {
   const { theme } = useTheme()
   const [uiState, setUiState] = useState('landing')
+  const [composerKey, setComposerKey] = useState(0)
   const [submittedMessage, setSubmittedMessage] = useState('')
   const [extraction, setExtraction] = useState(null)
   const [extractionError, setExtractionError] = useState('')
@@ -74,25 +81,19 @@ export default function App() {
     setGstError('')
 
     try {
-      const response = await fetch('/gst/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_state: draft.location,
+      const data = normalizeGstResponse(await postJson(
+        '/gst/calculate',
+        {
+          customer_state: draft.customerState,
           items: draft.items.map(item => ({
             name: item.name,
             quantity: item.quantity,
             unit_price: item.unitPrice,
             stated_gst_rate: draft.statedGstRate,
           })),
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error ?? 'GST calculation failed')
-      }
+        },
+        'GST calculation failed'
+      ))
 
       setGstResult(data)
       setUiState('confirmed')
@@ -113,23 +114,21 @@ export default function App() {
     setInvoiceError('')
 
     try {
-      const response = await fetch('/invoice/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = normalizeInvoiceResponse(await postJson(
+        '/invoice/generate',
+        {
           customer_name: confirmedOrder.customer,
           customer_location: confirmedOrder.location,
-          items: confirmedOrder.items,
+          items: confirmedOrder.items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+          })),
           stated_gst_rate: confirmedOrder.statedGstRate,
           gst_calculation: gstResult,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error ?? 'Invoice generation failed')
-      }
+        },
+        'Invoice generation failed'
+      ))
 
       setInvoice(data)
       setUiState('invoice')
@@ -150,27 +149,17 @@ export default function App() {
     setUpiError('')
 
     try {
-      const response = await fetch('/upi/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          invoice_number: invoice.invoiceNumber,
-          invoice_amount: invoice.grandTotal,
+      const data = normalizeUpiResponse(await postJson(
+        '/upi/generate',
+        {
+          invoice_number: invoice.invoice_number,
+          invoice_amount: invoice.grand_total,
           customer_name: invoice.customer?.name,
           customer_location: invoice.customer?.location,
-          customer_vpa: undefined,
-          merchant_name: undefined,
-          merchant_vpa: undefined,
-          transaction_note: undefined,
           currency: 'INR',
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error ?? 'UPI generation failed')
-      }
+        },
+        'Payment request generation failed'
+      ))
 
       setUpi(data)
       setUiState('upi')
@@ -180,7 +169,7 @@ export default function App() {
     }
   }
 
-  function handleReset() {
+  function resetWorkflow(clearComposer) {
     setUiState('idle')
     setSubmittedMessage('')
     setExtraction(null)
@@ -192,6 +181,28 @@ export default function App() {
     setInvoiceError('')
     setUpi(null)
     setUpiError('')
+    if (clearComposer) setComposerKey(key => key + 1)
+  }
+
+  function handleReset() {
+    resetWorkflow(true)
+  }
+
+  function handleReturnToOrder() {
+    resetWorkflow(false)
+  }
+
+  function handleRetry() {
+    if (gstError && confirmedOrder) {
+      return handleConfirm(confirmedOrder)
+    }
+    if (invoiceError && gstResult && confirmedOrder) {
+      return handleGenerateInvoice()
+    }
+    if (upiError && invoice) {
+      return handleGenerateUpi()
+    }
+    handleReturnToOrder()
   }
 
   // Determine what to render in the right panel
@@ -210,18 +221,15 @@ export default function App() {
         )
       case 'calculating':
         return (
-          <div className="card border-status-warning/40 p-8 flex flex-col items-center gap-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-status-warning/10 flex items-center justify-center">
-              <svg className="w-6 h-6 text-status-warning animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-            </div>
+          <div className="card flex flex-col gap-4 p-6 sm:p-8" role="status" aria-live="polite">
             <div>
-              <h3 className="text-text-primary font-semibold text-sm">Calculating GST</h3>
-              <p className="text-text-muted text-xs mt-1 max-w-[280px]">
-                Applying deterministic tax rules…
-              </p>
+              <h3 className="text-base font-semibold text-text-primary">Applying GST rules</h3>
+              <p className="mt-1 text-sm text-text-secondary">Calculating the applicable tax and totals.</p>
+            </div>
+            <div className="flex flex-col gap-3" aria-hidden="true">
+              <div className="h-3 w-3/4 animate-pulse rounded bg-surface-overlay" />
+              <div className="h-3 w-full animate-pulse rounded bg-surface-overlay" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-surface-overlay" />
             </div>
           </div>
         )
@@ -229,27 +237,26 @@ export default function App() {
         return (
           <div className="flex flex-col gap-4">
             {gstResult?.gst_mismatch && (
-              <div className="card border-status-warning/30 p-4 flex items-start gap-3">
+              <div className="flex items-start gap-3 rounded-xl border border-status-warning/30 bg-status-warning/5 p-4">
                 <svg className="w-5 h-5 text-status-warning mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 </svg>
                 <div className="flex-1">
-                  <p className="text-xs font-semibold text-status-warning">GST rate mismatch</p>
-                  <p className="text-xs text-status-warning/70 mt-1">
-                    Message stated <span className="font-semibold font-mono">{gstResult.stated_gst_rate ?? 'no'}%</span> GST,
-                    but deterministic rules determine <span className="font-semibold font-mono">{gstResult.determined_gst_rate}%</span>.
-                    Calculation uses the <span className="font-semibold">determined rate</span>.
+                  <p className="text-sm font-semibold text-text-primary">The stated rate differs from the applicable rate</p>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Message stated <span className="font-mono font-semibold text-text-primary">{gstResult.stated_gst_rate ?? 'Not stated'}{gstResult.stated_gst_rate != null ? '%' : ''}</span>.
+                    {' '}GST rules determine <span className="font-mono font-semibold text-text-primary">{gstResult.determined_gst_rate}%</span>, which is used in this calculation.
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="card p-5 flex flex-col gap-4">
+            <div className="card flex flex-col gap-5 p-5 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-text-primary font-semibold text-sm">GST Calculation Complete</h3>
-                  <p className="text-text-muted text-xs mt-1">
-                    Deterministic rules applied. AI proposed. Rules decided.
+                  <h3 className="text-base font-semibold text-text-primary">GST rules applied</h3>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    AI proposed the extracted details. Tax rules determine the applicable rate.
                   </p>
                 </div>
                 <span className="badge-info shrink-0">
@@ -257,11 +264,11 @@ export default function App() {
                 </span>
               </div>
 
-              <div className="card p-4 flex flex-col gap-3">
-                <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Items</p>
-                <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
+                <h4 className="text-sm font-semibold text-text-primary">Calculated items</h4>
+                <div className="divide-y divide-border rounded-xl border border-border-muted bg-surface px-4">
                   {gstResult?.items?.map((item, idx) => (
-                    <div key={idx} className="card p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div key={idx} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-text-primary">{item.name}</p>
                         <p className="text-xs text-text-muted font-mono tabular-nums">
@@ -303,61 +310,67 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="card p-4 flex flex-col gap-2">
-                <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Totals</p>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                  <dt className="text-text-muted">Subtotal</dt>
+              <div className="rounded-xl border border-border-muted bg-surface p-4 sm:p-5">
+                <h4 className="mb-3 text-sm font-semibold text-text-primary">GST summary</h4>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <dt className="text-text-secondary">Subtotal</dt>
                   <dd className="text-text-primary text-right font-mono tabular-nums">₹{gstResult?.total_subtotal.toFixed(2)}</dd>
-                  <dt className="text-text-muted">Total GST</dt>
+                  <dt className="text-text-secondary">Total GST</dt>
                   <dd className="text-text-primary text-right font-mono tabular-nums">₹{gstResult?.total_gst_amount.toFixed(2)}</dd>
                   {gstResult?.tax_type === 'intra_state' ? (
                     <>
-                      <dt className="text-text-muted">CGST</dt>
+                      <dt className="text-text-secondary">CGST</dt>
                       <dd className="text-text-primary text-right font-mono tabular-nums">₹{gstResult?.total_cgst.toFixed(2)}</dd>
-                      <dt className="text-text-muted">SGST</dt>
+                      <dt className="text-text-secondary">SGST</dt>
                       <dd className="text-text-primary text-right font-mono tabular-nums">₹{gstResult?.total_sgst.toFixed(2)}</dd>
                     </>
                   ) : (
                     <>
-                      <dt className="text-text-muted">IGST</dt>
+                      <dt className="text-text-secondary">IGST</dt>
                       <dd className="text-text-primary text-right font-mono tabular-nums">₹{gstResult?.total_igst.toFixed(2)}</dd>
                     </>
                   )}
-                  <dt className="text-text-muted font-semibold">Grand Total</dt>
-                  <dd className="text-text-primary font-semibold text-right font-mono tabular-nums">₹{gstResult?.grand_total.toFixed(2)}</dd>
+                  <dt className="border-t border-border pt-3 font-semibold text-text-primary">Grand total</dt>
+                  <dd className="border-t border-border pt-2 text-right font-mono text-xl font-bold tabular-nums text-brand-500">₹{gstResult?.grand_total.toFixed(2)}</dd>
                 </dl>
               </div>
 
-              <div className="rounded-lg bg-status-success/10 border border-status-success/30 p-3 text-center">
-                <p className="text-xs text-status-success">
-                  Calculation uses deterministic rules. AI proposed the extraction; rules decided the tax.
+              <div className="rounded-xl border border-status-success/30 bg-status-success/5 p-3">
+                <p className="text-sm leading-relaxed text-text-secondary">
+                  AI helps organize the order. GST rates and totals are calculated by the rules engine.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleReset}
-                className="btn-secondary btn-md"
-              >
-                Start new order
-              </button>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="btn-secondary btn-md"
+                >
+                  Start new order
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateInvoice}
+                  className="btn-primary btn-md"
+                >
+                  Generate Invoice
+                </button>
+              </div>
             </div>
           </div>
         )
       case 'generating':
         return (
-          <div className="card border-status-warning/40 p-8 flex flex-col items-center gap-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-status-warning/10 flex items-center justify-center">
-              <svg className="w-6 h-6 text-status-warning animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-            </div>
+          <div className="card flex flex-col gap-4 p-6 sm:p-8" role="status" aria-live="polite">
             <div>
-              <h3 className="text-text-primary font-semibold text-sm">Generating Invoice</h3>
-              <p className="text-text-muted text-xs mt-1 max-w-[280px]">
-                Creating invoice from GST calculation…
-              </p>
+              <h3 className="text-base font-semibold text-text-primary">Generating invoice</h3>
+              <p className="mt-1 text-sm text-text-secondary">Preparing the invoice from the confirmed GST calculation.</p>
+            </div>
+            <div className="flex flex-col gap-3" aria-hidden="true">
+              <div className="h-3 w-3/4 animate-pulse rounded bg-surface-overlay" />
+              <div className="h-3 w-full animate-pulse rounded bg-surface-overlay" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-surface-overlay" />
             </div>
           </div>
         )
@@ -365,61 +378,57 @@ export default function App() {
         return (
           <div className="flex flex-col gap-4">
             {invoice?.gst_mismatch && (
-              <div className="card border-status-warning/30 p-4 flex items-start gap-3">
+              <div className="flex items-start gap-3 rounded-xl border border-status-warning/30 bg-status-warning/5 p-4">
                 <svg className="w-5 h-5 text-status-warning mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 </svg>
                 <div className="flex-1">
-                  <p className="text-xs font-semibold text-status-warning">GST rate mismatch</p>
-                  <p className="text-xs text-status-warning/70 mt-1">
-                    Message stated <span className="font-semibold font-mono">{invoice.stated_gst_rate ?? 'no'}%</span> GST,
-                    but deterministic rules determine <span className="font-semibold font-mono">{invoice.determined_gst_rate}%</span>.
-                    Calculation uses the <span className="font-semibold">determined rate</span>.
+                  <p className="text-sm font-semibold text-text-primary">The stated rate differs from the applicable rate</p>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Message stated <span className="font-mono font-semibold text-text-primary">{invoice.stated_gst_rate ?? 'Not stated'}{invoice.stated_gst_rate != null ? '%' : ''}</span>.
+                    {' '}GST rules determine <span className="font-mono font-semibold text-text-primary">{invoice.determined_gst_rate}%</span>, which is used in this invoice.
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="card p-5 flex flex-col gap-4">
+            <div className="card flex flex-col gap-5 border-border-strong p-5 shadow-md sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-text-primary font-semibold text-sm">Invoice Generated</h3>
-                  <p className="text-text-muted text-xs mt-1">
+                  <h3 className="text-lg font-semibold text-text-primary">Invoice</h3>
+                  <p className="mt-1 text-sm text-text-secondary">
                     Invoice <span className="font-mono">{invoice?.invoice_number}</span> created on {invoice?.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString('en-IN') : ''}
                   </p>
                 </div>
-                <span className="badge-info shrink-0">
-                  {invoice?.tax_type === 'intra_state' ? 'Intra-state (CGST+SGST)' : 'Inter-state (IGST)'}
-                </span>
+                <span className="badge-neutral shrink-0">{invoice?.tax_type === 'intra_state' ? 'CGST + SGST' : 'IGST'}</span>
               </div>
 
-              <div className="card p-4 flex flex-col gap-3">
-                <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Seller</p>
-                <div className="flex flex-col gap-1 text-xs text-text-muted">
-                  <div className="font-medium text-text-primary">{invoice?.seller?.name}</div>
-                  <div>{invoice?.seller?.address}</div>
-                  <div>State: {invoice?.seller?.state}</div>
-                  <div>{invoice?.seller?.gstin}</div>
-                </div>
-              </div>
-
-              {invoice?.customer?.name && (
-                <div className="card p-4 flex flex-col gap-3">
-                  <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Customer</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-text-primary">{invoice.customer.name}</span>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-border-muted bg-surface p-4">
+                  <h4 className="mb-2 text-xs font-semibold text-text-muted">From</h4>
+                  <div className="flex flex-col gap-1 break-words text-sm text-text-secondary">
+                    <div className="font-semibold text-text-primary">{invoice?.seller?.name}</div>
+                    <div>{invoice?.seller?.address}</div>
+                    <div>{invoice?.seller?.state}</div>
+                    <div className="font-mono text-xs">{invoice?.seller?.gstin}</div>
                   </div>
-                  {invoice.customer.location && (
-                    <div className="text-xs text-text-muted">Location: {invoice.customer.location}</div>
-                  )}
                 </div>
-              )}
+                {invoice?.customer?.name && (
+                  <div className="rounded-xl border border-border-muted bg-surface p-4">
+                    <h4 className="mb-2 text-xs font-semibold text-text-muted">Bill to</h4>
+                    <div className="text-sm font-semibold text-text-primary">{invoice.customer.name}</div>
+                    {invoice.customer.location && (
+                      <div className="mt-1 text-sm text-text-secondary">{invoice.customer.location}</div>
+                    )}
+                  </div>
+                )}
+              </div>
 
-              <div className="card p-4 flex flex-col gap-3">
-                <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Items</p>
-                <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
+                <h4 className="text-sm font-semibold text-text-primary">Line items</h4>
+                <div className="divide-y divide-border rounded-xl border border-border-muted bg-surface px-4">
                   {invoice?.items?.map((item, idx) => (
-                    <div key={idx} className="card p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div key={idx} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-text-primary">{item.name}</p>
                         <p className="text-xs text-text-muted font-mono tabular-nums">
@@ -461,46 +470,46 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="card p-4 flex flex-col gap-2">
-                <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Totals</p>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                  <dt className="text-text-muted">Subtotal</dt>
+              <div className="rounded-xl border border-border-muted bg-surface p-4 sm:p-5">
+                <h4 className="mb-3 text-sm font-semibold text-text-primary">Totals</h4>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <dt className="text-text-secondary">Subtotal</dt>
                   <dd className="text-text-primary text-right font-mono tabular-nums">₹{invoice?.subtotal?.toFixed(2)}</dd>
-                  <dt className="text-text-muted">Total GST</dt>
+                  <dt className="text-text-secondary">Total GST</dt>
                   <dd className="text-text-primary text-right font-mono tabular-nums">₹{invoice?.total_gst_amount?.toFixed(2)}</dd>
                   {invoice?.tax_type === 'intra_state' ? (
                     <>
-                      <dt className="text-text-muted">CGST</dt>
+                      <dt className="text-text-secondary">CGST</dt>
                       <dd className="text-text-primary text-right font-mono tabular-nums">₹{invoice?.total_cgst?.toFixed(2)}</dd>
-                      <dt className="text-text-muted">SGST</dt>
+                      <dt className="text-text-secondary">SGST</dt>
                       <dd className="text-text-primary text-right font-mono tabular-nums">₹{invoice?.total_sgst?.toFixed(2)}</dd>
                     </>
                   ) : (
                     <>
-                      <dt className="text-text-muted">IGST</dt>
+                      <dt className="text-text-secondary">IGST</dt>
                       <dd className="text-text-primary text-right font-mono tabular-nums">₹{invoice?.total_igst?.toFixed(2)}</dd>
                     </>
                   )}
-                  <dt className="text-text-muted font-semibold">Grand Total</dt>
-                  <dd className="text-text-primary font-semibold text-right font-mono tabular-nums">₹{invoice?.grand_total?.toFixed(2)}</dd>
+                  <dt className="border-t border-border pt-3 font-semibold text-text-primary">Grand total</dt>
+                  <dd className="border-t border-border pt-2 text-right font-mono text-xl font-bold tabular-nums text-brand-500">₹{invoice?.grand_total?.toFixed(2)}</dd>
                 </dl>
               </div>
 
               {invoice?.gst_mismatch && (
-                <div className="card border-status-warning/30 p-3 text-center">
-                  <p className="text-xs text-status-warning">
+                <div className="rounded-lg border border-status-warning/30 bg-status-warning/5 p-3">
+                  <p className="text-sm text-text-secondary">
                     GST rate mismatch: stated <span className="font-mono">{invoice.stated_gst_rate}%</span> → applied <span className="font-mono">{invoice.determined_gst_rate}%</span>
                   </p>
                 </div>
               )}
 
-              <div className="rounded-lg bg-status-success/10 border border-status-success/30 p-3 text-center">
-                <p className="text-xs text-status-success">
-                  Calculation uses deterministic rules. AI proposed the extraction; rules decided the tax.
+              <div className="rounded-xl border border-status-success/30 bg-status-success/5 p-3">
+                <p className="text-sm text-text-secondary">
+                  AI helps organize the order. GST rates and totals are calculated by the rules engine.
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={handleGenerateUpi}
@@ -522,68 +531,88 @@ export default function App() {
 case 'upi':
         return (
           <div className="flex flex-col gap-4">
-            {upi?.upi_deep_link && (
-              <div className="card p-5 flex flex-col gap-4">
+      {!upi && (
+        <div className="card flex flex-col gap-4 p-6 sm:p-8" role="status" aria-live="polite">
+          <div>
+            <h3 className="text-base font-semibold text-text-primary">Preparing payment request</h3>
+            <p className="mt-1 text-sm text-text-secondary">Creating the UPI link and QR code.</p>
+          </div>
+          <div className="flex flex-col gap-3" aria-hidden="true">
+            <div className="h-3 w-3/4 animate-pulse rounded bg-surface-overlay" />
+            <div className="h-3 w-full animate-pulse rounded bg-surface-overlay" />
+            <div className="h-3 w-1/2 animate-pulse rounded bg-surface-overlay" />
+          </div>
+        </div>
+      )}
+      {upi?.upi_deep_link && (
+                <div className="card flex flex-col gap-5 p-5 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-text-primary font-semibold text-sm">UPI Payment Request Ready</h3>
-                    <p className="text-text-secondary text-xs mt-1">
-                      Share this with the customer to complete payment
+                      <h3 className="text-lg font-semibold text-text-primary">Payment request</h3>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        Share the payment link or QR code with your customer.
                     </p>
                   </div>
-                  <span className="badge-info shrink-0">
-                    UPI Ready
-                  </span>
-                </div>
-
-                <div className="card p-4 flex flex-col gap-3">
-                  <p className="text-xs text-text-muted font-medium uppercase tracking-widest">UPI Deep Link</p>
-                  <div className="card p-3 text-center">
-                    <code className="text-xs text-brand-500 break-all">{upi.upi_deep_link}</code>
+                    <span className="badge-warning shrink-0">{upi?.status === 'pending' ? 'Pending' : upi?.status}</span>
                   </div>
-                  <p className="text-xs text-text-muted text-center">
-                    Copy this link to share via WhatsApp, SMS, or email
-                  </p>
-                </div>
 
-                <div className="card p-4 flex flex-col gap-3">
-                  <p className="text-xs text-text-muted font-medium uppercase tracking-widest">QR Code</p>
-                  <div className="flex justify-center">
-                    <img src={upi.qr_code_data} alt="UPI QR Code" className="w-48 h-48" />
+                  <div className="rounded-xl border border-border-muted bg-surface p-4">
+                    <p className="text-xs font-medium text-text-muted">Amount requested</p>
+                    <p className="mt-1 font-mono text-3xl font-bold tabular-nums tracking-tight text-text-primary">
+                      ₹{upi?.amount?.toFixed(2)}
+                    </p>
+                    <p className="mt-1 text-sm text-text-secondary">
+                      Invoice <span className="font-mono">{invoice?.invoice_number}</span>
+                    </p>
                   </div>
-                  <p className="text-xs text-text-muted text-center">
-                    Scan with any UPI app (PhonePe, GPay, Paytm, etc.)
-                  </p>
-                </div>
 
-                <div className="card p-4 flex flex-col gap-3">
-                  <p className="text-xs text-text-muted font-medium uppercase tracking-widest">Payment Details</p>
-                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                    <dt className="text-text-muted">Amount</dt>
-                    <dd className="text-text-primary text-right font-mono">₹{upi?.amount?.toFixed(2)}</dd>
-                    <dt className="text-text-muted">Merchant</dt>
-                    <dd className="text-text-primary text-right">{upi?.merchant_name}</dd>
-                    <dt className="text-text-muted">Merchant VPA</dt>
-                    <dd className="text-text-primary text-right font-mono text-xs">{upi?.merchant_vpa}</dd>
-                    <dt className="text-text-muted">Status</dt>
-                    <dd className="text-text-primary text-right">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-warning/10 text-status-warning text-xs border border-status-warning/20">
-                        <span className="w-1.5 h-1.5 rounded-full bg-status-warning"></span>
-                        {upi?.status === 'pending' ? 'Awaiting Payment' : upi?.status}
-                      </span>
-                    </dd>
-                    <dt className="text-text-muted">Expires</dt>
-                    <dd className="text-text-primary text-right">{upi?.expires_at ? new Date(upi.expires_at).toLocaleTimeString('en-IN') : ''}</dd>
-                  </dl>
-                </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="flex min-w-0 flex-col items-start gap-3 rounded-xl border border-border-muted bg-surface p-4">
+                      <h4 className="text-sm font-semibold text-text-primary">Pay using UPI</h4>
+                      <p className="text-sm leading-relaxed text-text-secondary">
+                        Open the payment request in a UPI app on this device.
+                      </p>
+                      <a href={upi.upi_deep_link} className="btn-primary btn-md mt-auto w-full whitespace-nowrap">
+                        Open UPI app
+                      </a>
+                      <details className="w-full">
+                        <summary className="cursor-pointer text-xs font-medium text-text-secondary focus-visible:outline-none">
+                          View payment link
+                        </summary>
+                        <code className="mt-2 block break-all rounded-lg border border-border bg-surface-elevated p-3 text-xs text-brand-500">
+                          {upi.upi_deep_link}
+                        </code>
+                      </details>
+                    </div>
 
-                <div className="rounded-lg bg-status-success/10 border border-status-success/30 p-3 text-center">
-                  <p className="text-xs text-status-success">
-                    UPI deep link and QR code generated. No real payment processed — demo mode only.
-                  </p>
-                </div>
+                    <div className="flex flex-col items-center gap-3 rounded-xl border border-border-muted bg-surface p-4 text-center">
+                      <h4 className="text-sm font-semibold text-text-primary">Scan to pay</h4>
+                      <img src={upi.qr_code_data} alt="QR code for this UPI payment request" className="h-40 w-40 rounded-lg bg-white p-2" />
+                      <p className="text-xs leading-relaxed text-text-secondary">Scan with a UPI app on another device.</p>
+                    </div>
+                  </div>
 
-                <div className="flex gap-3">
+                  <div className="rounded-xl border border-border-muted bg-surface p-4">
+                    <h4 className="mb-3 text-sm font-semibold text-text-primary">Request details</h4>
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <dt className="text-text-secondary">Merchant</dt>
+                      <dd className="break-words text-right text-text-primary">{upi?.merchant_name}</dd>
+                      <dt className="text-text-secondary">UPI ID</dt>
+                      <dd className="break-all text-right font-mono text-xs text-text-primary">{upi?.merchant_vpa}</dd>
+                      <dt className="text-text-secondary">Status</dt>
+                      <dd className="text-right"><span className="badge-warning">{upi?.status === 'pending' ? 'Pending' : upi?.status}</span></dd>
+                      <dt className="text-text-secondary">Expires</dt>
+                      <dd className="text-right text-text-primary">{upi?.expires_at ? new Date(upi.expires_at).toLocaleTimeString('en-IN') : 'Not specified'}</dd>
+                    </dl>
+                  </div>
+
+                  <div className="rounded-xl border border-status-warning/30 bg-status-warning/5 p-3">
+                    <p className="text-sm leading-relaxed text-text-secondary">
+                      This request does not verify payment. Confirm receipt separately; INVOX does not receive payment confirmation.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                   <button
                     type="button"
                     onClick={handleReset}
@@ -604,28 +633,45 @@ case 'upi':
           </div>
         )
       case 'error':
+        const errorTitle = invoiceError
+          ? 'Invoice generation failed'
+          : gstError
+            ? 'GST calculation failed'
+            : upiError
+              ? 'Payment request failed'
+              : 'Could not process order'
+        const errorMessage = invoiceError || gstError || upiError || extractionError
         return (
-          <div className="card border-status-error/40 p-8 flex flex-col items-center gap-4 text-center">
+          <div className="card flex flex-col items-start gap-4 border-status-error/40 p-6 sm:p-8" role="alert">
             <div className="w-12 h-12 rounded-full bg-status-error/10 flex items-center justify-center">
               <svg className="w-6 h-6 text-status-error" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
             <div>
-              <h3 className="text-text-primary font-semibold text-sm">
-                {invoiceError ? 'Invoice generation failed' : gstError ? 'GST calculation failed' : 'Could not process order'}
-              </h3>
-              <p className="text-text-muted text-xs mt-1 max-w-[280px] leading-relaxed">
-                {invoiceError || gstError || extractionError}
+              <h3 className="text-sm font-semibold text-text-primary">{errorTitle}</h3>
+              <p className="mt-1 max-w-[280px] break-words text-xs leading-relaxed text-text-muted">
+                {errorMessage}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="btn-ghost btn-sm"
-            >
-              Try again
-            </button>
+            <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={handleReset}
+                className="btn-secondary btn-md"
+              >
+                Start new order
+              </button>
+              <button
+                type="button"
+                onClick={extractionError && !gstError && !invoiceError && !upiError ? handleReturnToOrder : handleRetry}
+                className="btn-ghost btn-md"
+              >
+                {extractionError && !gstError && !invoiceError && !upiError
+                  ? 'Return to order'
+                  : 'Try again'}
+              </button>
+            </div>
           </div>
         )
       default: // 'idle'
@@ -634,26 +680,31 @@ case 'upi':
   }
 
   return (
-    <div className={`min-h-screen flex flex-col ${theme === 'dark' ? 'dark' : ''} bg-surface`}>
-      <Header onEnterApp={handleEnterApp} />
+    <div className={`flex min-h-[100dvh] flex-col ${theme === 'dark' ? 'dark' : ''} bg-surface`}>
+      <Header />
 
       {uiState === 'landing' ? (
         <LandingPage onEnterApp={handleEnterApp} />
       ) : (
-        <main className="flex-1 flex flex-col lg:flex-row gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+        <main className="mx-auto grid w-full max-w-7xl flex-1 grid-cols-1 gap-5 px-4 py-6 md:gap-6 md:px-6 md:py-8 lg:grid-cols-2">
+          <WorkflowSteps
+            currentState={uiState}
+            errorStage={gstError ? 'gst' : invoiceError ? 'invoice' : upiError ? 'upi' : 'review'}
+          />
           {/* Left panel — Order input */}
-          <section className="flex flex-col gap-4 lg:w-1/2" aria-label="Order input">
-            <div className="card p-5 flex flex-col gap-3">
+          <section className="flex min-w-0 flex-col gap-4" aria-label="Order input">
+            <div className="card flex flex-col gap-4 p-5 sm:p-6">
               <div>
-                <h2 className="text-sm font-semibold text-text-primary">
-                  New order
+                <h2 className="text-lg font-semibold text-text-primary">
+                  Start with the order message
                 </h2>
-                <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                  Describe the order naturally — in English or Hinglish. INVOX will
-                  extract the details for you to review.
+                <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                  Paste what your customer sent. INVOX organizes the details for you to check.
                 </p>
               </div>
               <OrderComposer
+                key={composerKey}
+                disabled={uiState === 'calculating' || uiState === 'generating' || (uiState === 'upi' && !upi)}
                 onExtractionStart={() => {
                   // Capture the message before it gets cleared
                   handleExtractionStart()
@@ -663,12 +714,10 @@ case 'upi':
               />
             </div>
 
-            {/* Workflow indicator */}
-            <WorkflowSteps currentState={uiState} />
           </section>
 
           {/* Right panel — dynamic content */}
-          <section className="lg:w-1/2" aria-label="Extraction result and review">
+          <section className="min-w-0" aria-label="Extraction result and review">
             {renderRightPanel()}
           </section>
         </main>
@@ -678,47 +727,45 @@ case 'upi':
 }
 
 /**
- * WorkflowSteps — lightweight visual progress indicator.
- * Shows the seller where they are in the order→invoice→UPI flow.
- * States: idle → loading → review → calculating → confirmed → generating → invoice → upi
+ * WorkflowSteps shows progress through the five customer-facing workflow stages.
  */
-function WorkflowSteps({ currentState }) {
+function WorkflowSteps({ currentState, errorStage }) {
   const steps = [
-    { id: 'idle',        label: 'Order' },
-    { id: 'loading',     label: 'Extract' },
-    { id: 'review',      label: 'Review' },
-    { id: 'calculating', label: 'GST' },
-    { id: 'confirmed',   label: 'Confirm' },
-    { id: 'generating',  label: 'Invoice' },
-    { id: 'invoice',     label: 'UPI' },
-    { id: 'upi',         label: 'Done' },
+    { id: 'idle', label: 'Order' },
+    { id: 'review', label: 'Review' },
+    { id: 'gst', label: 'GST' },
+    { id: 'invoice', label: 'Invoice' },
+    { id: 'upi', label: 'Payment' },
   ]
 
-  // Map error state to show progress up to review
   const stateMap = {
-    'error': 'review',
+    loading: 'idle',
+    calculating: 'gst',
+    confirmed: 'gst',
+    generating: 'invoice',
+    error: errorStage,
   }
 
   const displayState = stateMap[currentState] || currentState
   const activeIndex = steps.findIndex(s => s.id === displayState)
 
   return (
-    <div className="flex items-center gap-0 mt-4" aria-label="Workflow progress" role="list">
+    <ol className="col-span-full grid min-w-0 grid-cols-5 gap-1 rounded-xl border border-border bg-surface-elevated px-2 py-3 md:flex md:items-center md:px-5" aria-label="Workflow progress">
       {steps.map((step, i) => {
         const done = i < activeIndex
         const active = i === activeIndex
         return (
           <React.Fragment key={step.id}>
-            <div
-              className="flex items-center gap-1.5"
-              role="listitem"
+            <li
+              className="flex min-w-0 flex-col items-center justify-center gap-1 md:flex-1 md:flex-row md:justify-start md:gap-2"
               aria-current={active ? 'step' : undefined}
+              aria-label={`${step.label}: ${done ? 'completed' : active ? 'current step' : 'upcoming'}`}
             >
               <div className={[
-                'w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition',
-                done    ? 'bg-brand-500 text-white' :
-                active  ? 'bg-brand-500/20 border border-brand-500 text-brand-500' :
-                          'bg-surface-overlay border border-border text-text-muted',
+                'flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-colors',
+                done ? 'border-brand-600 bg-brand-600 text-white' :
+                active ? 'border-brand-500 bg-brand-500/10 text-brand-500' :
+                  'border-border bg-surface text-text-muted',
               ].join(' ')}>
                 {done ? (
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
@@ -729,21 +776,21 @@ function WorkflowSteps({ currentState }) {
                 )}
               </div>
               <span className={[
-                'text-xs transition hidden sm:inline',
-                active ? 'text-text-primary font-medium' : done ? 'text-text-secondary' : 'text-text-muted',
+                'min-w-0 text-center text-[9px] leading-tight transition md:text-left md:text-xs',
+                active ? 'font-semibold text-text-primary' : done ? 'text-text-secondary' : 'text-text-muted',
               ].join(' ')}>
                 {step.label}
               </span>
-            </div>
+            </li>
             {i < steps.length - 1 && (
               <div className={[
-                'flex-1 h-px mx-1 transition hidden sm:block',
-                i < activeIndex ? 'bg-brand-500/40' : 'bg-border',
+                'hidden h-px shrink-0 transition-colors md:mx-3 md:block md:w-6 md:flex-none',
+                i < activeIndex ? 'bg-brand-500/60' : 'bg-border',
               ].join(' ')} aria-hidden="true" />
             )}
           </React.Fragment>
         )
       })}
-    </div>
+    </ol>
   )
 }

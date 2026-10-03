@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 
 /**
  * ExtractionReview
@@ -25,6 +25,7 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
   const [draft, setDraft] = useState({
     customer: extraction?.customer ?? '',
     location: extraction?.location ?? '',
+    customerState: extraction?.state ?? extraction?.customerState ?? '',
     items: initialItems.map(item => ({
       name: item.name ?? '',
       quantity: String(item.quantity ?? ''),
@@ -41,9 +42,9 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
 
   function updateField(field, value, index = null) {
     setDraft(prev => {
-      if (index !== null && field === 'items') {
+      if (index !== null) {
         const newItems = [...prev.items]
-        newItems[index] = { ...newItems[index], ...value }
+        newItems[index] = { ...newItems[index], [field]: value }
         return { ...prev, items: newItems }
       }
       return { ...prev, [field]: value }
@@ -75,6 +76,10 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
 
     // Customer - optional, but if provided must not be empty string (handled by trim)
     // Location - optional
+
+    if (!draft.customerState?.trim()) {
+      e.customerState = 'State is required to determine GST treatment'
+    }
 
     // Items validation
     if (!draft.items || draft.items.length === 0) {
@@ -119,12 +124,27 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
       ...prev,
       items: prev.items.filter((_, i) => i !== index),
     }))
+    setErrors(prev => reindexItemFields(prev, index))
+    setTouched(prev => reindexItemFields(prev, index))
+    setHumanEdited(prev => reindexItemFields(prev, index))
   }
 
   function handleConfirm() {
     const e = validate()
     if (Object.keys(e).length > 0) {
       setErrors(e)
+      const nextTouched = {
+        customer: true,
+        location: true,
+        customerState: true,
+        'stated-gst': true,
+      }
+      draft.items.forEach((_, idx) => {
+        for (const field of ['name', 'quantity', 'unitPrice']) {
+          nextTouched[`items.${idx}.${field}`] = true
+        }
+      })
+      setTouched(nextTouched)
       return
     }
     // Filter out items with empty names (shouldn't happen due to validation)
@@ -132,6 +152,7 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
     onConfirm({
       customer: draft.customer.trim(),
       location: draft.location.trim(),
+      customerState: draft.customerState.trim(),
       items: validItems.map(item => ({
         name: item.name.trim(),
         quantity: Number(item.quantity),
@@ -152,9 +173,9 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
     <div className="flex flex-col gap-4">
 
       {/* Original message */}
-      <div className="bg-surface-elevated/60 rounded-xl px-4 py-3">
-        <p className="text-xs text-text-muted mb-1">Original message</p>
-        <p className="text-sm text-text-secondary italic leading-relaxed">"{originalMessage}"</p>
+      <div className="rounded-xl border border-border-muted bg-surface px-4 py-3">
+        <p className="mb-1 text-xs font-medium text-text-muted">Original message</p>
+        <p className="break-words text-sm italic leading-relaxed text-text-secondary">“{originalMessage}”</p>
       </div>
 
       {/* Review card */}
@@ -162,10 +183,10 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
 
         {/* Card header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div>
-            <h2 className="text-sm font-semibold text-text-primary">Review extracted order</h2>
-            <p className="text-xs text-text-muted mt-0.5">
-              Edit any field, then confirm to continue.
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-text-primary">Review extracted details</h2>
+            <p className="mt-1 text-sm text-text-muted">
+              AI extracted this information. Nothing is finalized until you confirm.
             </p>
           </div>
           <span className="badge-neutral shrink-0">
@@ -174,100 +195,107 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
         </div>
 
         {/* Notice */}
-        <div className="px-5 py-3 bg-status-warning/5 border-b border-status-warning/10 flex items-start gap-2">
-          <svg className="w-4 h-4 text-status-warning mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+        <div className="flex items-start gap-2 border-b border-border bg-surface px-5 py-3">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-xs text-status-warning leading-relaxed">
-            <span className="font-semibold">Review before continuing.</span>{' '}
-            The stated GST rate is what appeared in the message — it is NOT the validated rate.
-            GST rules are applied by the backend in a later step.
+          <p className="text-sm leading-relaxed text-text-secondary">
+            Check customer, items, and the GST rate stated in the message. Applicable GST is determined in the next step.
           </p>
         </div>
 
         {/* Fields */}
         <div className="px-5 py-4 flex flex-col gap-4">
 
-          {/* Customer + Location row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field
-              id="customer"
-              label="Customer (optional)"
-              value={draft.customer}
-              error={touched.customer && errors.customer}
-              onChange={v => updateField('customer', v)}
-              onBlur={() => markTouched('customer')}
-              placeholder="Customer name"
-              isEdited={humanEdited.customer}
-            />
-            <Field
-              id="location"
-              label="Location (optional)"
-              value={draft.location}
-              error={touched.location && errors.location}
-              onChange={v => updateField('location', v)}
-              onBlur={() => markTouched('location')}
-              placeholder="City or state"
-              isEdited={humanEdited.location}
-            />
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-border" aria-hidden="true" />
-          <p className="text-xs text-text-muted font-medium uppercase tracking-widest -mb-1">Items</p>
-
-          {/* Items list */}
-          <div className="flex flex-col gap-2">
-            {draft.items.map((item, idx) => (
-              <ItemRow
-                key={idx}
-                index={idx}
-                item={item}
-                errors={errors}
-                touched={touched}
-                humanEdited={humanEdited}
-                onUpdate={(field, value) => updateField(field, value, idx)}
-                onBlur={(field) => markTouched(field, idx)}
-                onRemove={() => handleRemoveItem(idx)}
-                canRemove={draft.items.length > 1}
-                isFirst={idx === 0}
+          <section aria-labelledby="customer-heading">
+            <h3 id="customer-heading" className="mb-3 text-sm font-semibold text-text-primary">Customer</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field
+                id="customer"
+                label="Name (optional)"
+                value={draft.customer}
+                error={touched.customer && errors.customer}
+                onChange={v => updateField('customer', v)}
+                onBlur={() => markTouched('customer')}
+                placeholder="Customer name"
+                isEdited={humanEdited.customer}
               />
-            ))}
-            {draft.items.length < 5 && (
-              <button
-                type="button"
-                onClick={handleAddItem}
-                className="w-full py-2.5 text-center text-sm text-brand-500 hover:text-brand-400 border border-dashed border-border rounded-lg transition font-medium"
-              >
-                + Add another item
-              </button>
-            )}
-          </div>
+              <Field
+                id="location"
+                label="Location (optional)"
+                value={draft.location}
+                error={touched.location && errors.location}
+                onChange={v => updateField('location', v)}
+                onBlur={() => markTouched('location')}
+                placeholder="City or state"
+                isEdited={humanEdited.location}
+              />
+              <Field
+                id="customer-state"
+                label="State for GST"
+                value={draft.customerState}
+                error={touched.customerState && errors.customerState}
+                onChange={v => updateField('customerState', v)}
+                onBlur={() => markTouched('customerState')}
+                placeholder="Full state name, e.g. Maharashtra"
+                isEdited={humanEdited.customerState}
+              />
+            </div>
+            <p className="mt-2 text-xs leading-relaxed text-text-muted">
+              Enter the customer’s state. GST treatment depends on the state, not just the city.
+            </p>
+          </section>
 
-          {/* Divider */}
-          <div className="border-t border-border" aria-hidden="true" />
+          <section className="border-t border-border-muted pt-4" aria-labelledby="items-heading">
+            <h3 id="items-heading" className="mb-3 text-sm font-semibold text-text-primary">Items</h3>
+            <div className="flex flex-col gap-3">
+              {draft.items.map((item, idx) => (
+                <ItemRow
+                  key={idx}
+                  index={idx}
+                  item={item}
+                  errors={errors}
+                  touched={touched}
+                  humanEdited={humanEdited}
+                  onUpdate={(field, value) => updateField(field, value, idx)}
+                  onBlur={(field) => markTouched(field, idx)}
+                  onRemove={() => handleRemoveItem(idx)}
+                  canRemove={draft.items.length > 1}
+                />
+              ))}
+              {draft.items.length < 5 && (
+                <button
+                  type="button"
+                  onClick={handleAddItem}
+                  className="w-full rounded-lg border border-dashed border-border-strong py-2.5 text-center text-sm font-medium text-brand-500 transition hover:border-brand-500 hover:bg-brand-500/5"
+                >
+                  + Add another item
+                </button>
+              )}
+            </div>
+          </section>
 
-          {/* GST rate */}
-          <div>
+          <section className="border-t border-border-muted pt-4" aria-labelledby="gst-heading">
+            <h3 id="gst-heading" className="mb-3 text-sm font-semibold text-text-primary">GST</h3>
             <Field
               id="stated-gst"
-              label="Stated GST rate (%) — optional"
+              label="Rate stated in the message (optional)"
               value={draft.statedGstRate}
               error={touched['stated-gst'] && errors.statedGstRate}
               onChange={v => updateField('statedGstRate', v)}
               onBlur={() => markTouched('stated-gst')}
-              placeholder="e.g. 5"
+              placeholder="For example, 5"
               inputMode="decimal"
               isEdited={humanEdited.statedGstRate}
             />
-            <p className="text-xs text-text-muted mt-1.5">
-              This is what the message stated. The backend will validate and apply the correct rate.
+            <p className="mt-1.5 text-xs leading-relaxed text-text-muted">
+              The applicable GST rate is decided by the rules in the next step.
             </p>
-          </div>
+          </section>
         </div>
 
         {/* Actions */}
-        <div className="px-5 py-4 border-t border-border flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col-reverse gap-3 border-t border-border px-5 py-4 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onReset}
@@ -280,7 +308,7 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
             onClick={handleConfirm}
             className="btn-primary btn-md"
           >
-            Confirm order →
+            Confirm order
           </button>
         </div>
       </div>
@@ -291,48 +319,45 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
 /**
  * ItemRow — a single editable item row in the review form.
  */
-function ItemRow({ index, item, errors, touched, humanEdited, onUpdate, onBlur, onRemove, canRemove, isFirst }) {
-  const itemErrors = errors[`items.${index}`] || {}
-  const itemTouched = touched[`items.${index}`] || {}
-  const itemEdited = humanEdited[`items.${index}`] || {}
-
+function ItemRow({ index, item, errors, touched, humanEdited, onUpdate, onBlur, onRemove, canRemove }) {
   return (
-    <div className="card p-3 flex flex-col sm:flex-row gap-3 items-start">
-      <div className="flex-1 min-w-0">
+    <div className="rounded-xl border border-border-muted bg-surface p-3">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+      <div className="min-w-0 flex-1">
         <Field
           id={`item-name-${index}`}
-          label={isFirst ? 'Product' : 'Product'}
+          label="Product"
           value={item.name}
-          error={itemTouched.name && itemErrors.name}
+          error={touched[`items.${index}.name`] && errors[`items.${index}.name`]}
           onChange={v => onUpdate('name', v)}
           onBlur={() => onBlur('name')}
           placeholder="Product or service name"
-          isEdited={itemEdited.name}
+          isEdited={humanEdited[`items.${index}.name`]}
         />
       </div>
-      <div className="grid grid-cols-2 gap-3 w-full sm:w-auto">
+      <div className="grid w-full grid-cols-2 gap-3 sm:w-auto">
         <Field
           id={`quantity-${index}`}
           label="Qty"
           value={item.quantity}
-          error={itemTouched.quantity && itemErrors.quantity}
+          error={touched[`items.${index}.quantity`] && errors[`items.${index}.quantity`]}
           onChange={v => onUpdate('quantity', v)}
           onBlur={() => onBlur('quantity')}
           placeholder="e.g. 50"
           inputMode="numeric"
-          isEdited={itemEdited.quantity}
+          isEdited={humanEdited[`items.${index}.quantity`]}
           inputClassName="font-mono tabular-nums"
         />
         <Field
           id={`unit-price-${index}`}
           label="Unit price (₹)"
           value={item.unitPrice}
-          error={itemTouched.unitPrice && itemErrors.unitPrice}
+          error={touched[`items.${index}.unitPrice`] && errors[`items.${index}.unitPrice`]}
           onChange={v => onUpdate('unitPrice', v)}
           onBlur={() => onBlur('unitPrice')}
           placeholder="e.g. 450"
           inputMode="decimal"
-          isEdited={itemEdited.unitPrice}
+          isEdited={humanEdited[`items.${index}.unitPrice`]}
           inputClassName="font-mono tabular-nums"
         />
       </div>
@@ -340,14 +365,34 @@ function ItemRow({ index, item, errors, touched, humanEdited, onUpdate, onBlur, 
         <button
           type="button"
           onClick={onRemove}
-          className="self-end px-3 py-2 text-xs text-text-muted hover:text-status-error border border-border hover:border-status-error rounded-lg transition"
+          className="self-end rounded-lg border border-border px-3 py-2 text-xs text-text-muted transition hover:border-status-error hover:text-status-error"
           aria-label={`Remove item ${index + 1}`}
         >
           Remove
         </button>
       )}
     </div>
+    </div>
   )
+}
+
+function reindexItemFields(fields, removedIndex) {
+  const result = {}
+  for (const [key, value] of Object.entries(fields)) {
+    const match = /^items\.(\d+)\.(.+)$/.exec(key)
+    if (!match) {
+      result[key] = value
+      continue
+    }
+
+    const index = Number(match[1])
+    if (index < removedIndex) {
+      result[key] = value
+    } else if (index > removedIndex) {
+      result[`items.${index - 1}.${match[2]}`] = value
+    }
+  }
+  return result
 }
 
 /**
@@ -358,11 +403,7 @@ function Field({ id, label, value, error, onChange, onBlur, placeholder, inputMo
     <div className="field-group">
       <label htmlFor={id} className="flex items-center gap-1 text-xs font-medium text-text-secondary">
         {label}
-        {isEdited && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-400 border border-brand-500/30">
-            Edited
-          </span>
-        )}
+        {isEdited && <span className="text-[10px] font-medium text-brand-500">Edited by you</span>}
       </label>
       <input
         id={id}
@@ -377,6 +418,7 @@ function Field({ id, label, value, error, onChange, onBlur, placeholder, inputMo
         className={[
           'input',
           error && 'input-error',
+          isEdited && !error && 'border-brand-500/50 bg-brand-500/5',
           inputClassName,
         ].join(' ')}
       />

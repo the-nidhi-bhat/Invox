@@ -7,6 +7,7 @@ Tests the InvoiceRepository with mocked DynamoDB client.
 import pytest
 from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
+from threading import Lock
 from botocore.exceptions import ClientError
 
 from src.services.dynamodb_repository import (
@@ -39,6 +40,7 @@ class MockDynamoDBClient:
     def __init__(self):
         self.items = {}
         self.table_exists = True
+        self.transaction_lock = Lock()
     
     def describe_table(self, TableName):
         if not self.table_exists:
@@ -56,12 +58,31 @@ class MockDynamoDBClient:
         self.items[invoice_id] = Item
         return {}
     
-    def get_item(self, TableName, Key):
+    def get_item(self, TableName, Key, ConsistentRead=False):
         invoice_id = Key['invoice_id']['S']
         if invoice_id in self.items:
             return {'Item': self.items[invoice_id]}
         return {}
-    
+
+    def transact_write_items(self, TransactItems):
+        with self.transaction_lock:
+            for transaction in TransactItems:
+                put = transaction['Put']
+                item = put['Item']
+                invoice_id = item['invoice_id']['S']
+                if (
+                    put.get('ConditionExpression') == 'attribute_not_exists(invoice_id)'
+                    and invoice_id in self.items
+                ):
+                    raise make_client_error(
+                        'TransactionCanceledException',
+                        'Conditional request failed',
+                    )
+            for transaction in TransactItems:
+                item = transaction['Put']['Item']
+                self.items[item['invoice_id']['S']] = item
+        return {}
+
     def update_item(self, TableName, Key, UpdateExpression, ExpressionAttributeNames=None, ExpressionAttributeValues=None, ReturnValues=None, **kwargs):
         invoice_id = Key['invoice_id']['S']
         if invoice_id not in self.items:
@@ -81,7 +102,14 @@ class MockDynamoDBClient:
             return {'Attributes': item}
         return {}
     
-    def scan(self, TableName, FilterExpression=None, ExpressionAttributeValues=None, Limit=None, **kwargs):
+    def scan(
+        self,
+        TableName,
+        FilterExpression=None,
+        ExpressionAttributeValues=None,
+        Limit=None,
+        **kwargs,
+    ):
         results = []
         # Extract attribute name from FilterExpression (e.g., "invoice_number = :num" -> "invoice_number")
         attr_name = None
@@ -103,15 +131,18 @@ class MockDynamoDBClient:
                         if actual_val != expected_val:
                             match = False
                             break
+                if 'attribute_not_exists(record_type)' in FilterExpression and 'record_type' in item:
+                    match = False
                 else:
-                    # Fallback: check all expression attribute values
-                    for key, val in ExpressionAttributeValues.items():
-                        aname = key.replace(':', '')
-                        expected_val = val.get('S')
-                        actual_val = item.get(aname, {}).get('S')
-                        if actual_val != expected_val:
-                            match = False
-                            break
+                    if not attr_name or attr_name not in item:
+                        # Fallback: check all expression attribute values
+                        for key, val in ExpressionAttributeValues.items():
+                            aname = key.replace(':', '')
+                            expected_val = val.get('S')
+                            actual_val = item.get(aname, {}).get('S')
+                            if actual_val != expected_val:
+                                match = False
+                                break
                 if match:
                     results.append(item)
             else:
@@ -305,6 +336,40 @@ class TestInvoiceRepository:
         # Should return the first invoice (idempotent)
         saved2 = repository.save_invoice(invoice2)
         assert saved2.invoice_id == saved1.invoice_id
+
+    def test_idempotency_claim_and_invoice_are_written_together(
+        self,
+        repository,
+        sample_invoice,
+        mock_client,
+    ):
+        repository.save_invoice(sample_invoice)
+
+        record_id = f'IDEMPOTENCY#{sample_invoice.idempotency_key}'
+        assert mock_client.items[sample_invoice.invoice_id]['idempotency_key']['S'] == (
+            sample_invoice.idempotency_key
+        )
+        assert mock_client.items[record_id]['target_invoice_id']['S'] == sample_invoice.invoice_id
+
+    def test_transaction_conflict_returns_existing_invoice(
+        self,
+        repository,
+        sample_invoice,
+    ):
+        first = repository.save_invoice(sample_invoice)
+        second_invoice = PersistedInvoice.from_dynamodb_item(
+            sample_invoice.to_dynamodb_item()
+        )
+        second_invoice.invoice_id = 'INV-20240115-0002'
+        second_invoice.invoice_number = 'INV-20240115-0002'
+
+        existing = repository._write_invoice_idempotently(
+            second_invoice,
+            second_invoice.to_dynamodb_item(),
+        )
+
+        assert existing.invoice_id == first.invoice_id
+        assert second_invoice.invoice_id not in repository.client.items
 
     def test_generate_idempotency_key(self, repository):
         """Test idempotency key generation."""

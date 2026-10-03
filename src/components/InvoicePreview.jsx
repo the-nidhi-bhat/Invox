@@ -15,69 +15,75 @@ export default function InvoicePreview({ invoice }) {
   const fmt = n => `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   return (
-    <div className="card overflow-hidden">
-      {/* Invoice header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-        <div>
-          <p className="text-xs text-text-muted uppercase tracking-widest">Invoice</p>
-          <p className="font-bold text-text-primary text-lg">{invoice.id}</p>
-          <p className="text-xs text-text-muted mt-0.5">{invoice.date}</p>
+    <article className="overflow-hidden rounded-2xl border border-border-strong bg-surface-elevated shadow-md" aria-label={`Invoice ${invoice.id}`}>
+      <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-5 sm:px-7">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-text-secondary">Invoice</p>
+          <p className="mt-1 break-all font-mono text-lg font-bold text-text-primary">{invoice.id}</p>
+          <p className="mt-1 text-sm text-text-secondary">{invoice.date}</p>
         </div>
-        <span className="badge-warning">
-          {invoice.status.toUpperCase()}
+        <span className="badge-neutral shrink-0">
+          {invoice.status}
         </span>
-      </div>
+      </header>
 
-      {/* Raw input echo */}
-      <div className="px-5 py-3 bg-surface-overlay/40 border-b border-border">
-        <p className="text-xs text-text-muted mb-1">Original input</p>
-        <p className="text-sm text-text-secondary italic">"{invoice.rawText}"</p>
-      </div>
+      {(invoice.seller || invoice.customer) && (
+        <section className="grid grid-cols-1 gap-4 border-b border-border px-5 py-5 sm:grid-cols-2 sm:px-7">
+          {invoice.seller && (
+            <div>
+              <h3 className="mb-2 text-xs font-semibold text-text-muted">From</h3>
+              <p className="text-sm font-semibold text-text-primary">{invoice.seller.name}</p>
+              {invoice.seller.address && <p className="mt-1 text-sm text-text-secondary">{invoice.seller.address}</p>}
+              {invoice.seller.state && <p className="mt-1 text-sm text-text-secondary">{invoice.seller.state}</p>}
+              {invoice.seller.gstin && <p className="mt-1 font-mono text-xs text-text-secondary">{invoice.seller.gstin}</p>}
+            </div>
+          )}
+          {invoice.customer && (
+            <div>
+              <h3 className="mb-2 text-xs font-semibold text-text-muted">Bill to</h3>
+              <p className="text-sm font-semibold text-text-primary">{invoice.customer.name}</p>
+              {invoice.customer.location && <p className="mt-1 text-sm text-text-secondary">{invoice.customer.location}</p>}
+            </div>
+          )}
+        </section>
+      )}
 
-      {/* Line items table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-xs text-text-muted uppercase tracking-widest border-b border-border">
-              <th className="text-left px-5 py-3 font-medium">Item</th>
-              <th className="text-right px-3 py-3 font-medium">Qty</th>
-              <th className="text-right px-3 py-3 font-medium">Rate</th>
-              <th className="text-right px-3 py-3 font-medium">GST</th>
-              <th className="text-right px-5 py-3 font-medium">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lines.map((line, i) => (
-              <tr key={i} className="border-b border-border/60 hover:bg-surface-overlay/30 transition">
-                <td className="px-5 py-3 text-text-primary">{line.description}</td>
-                <td className="px-3 py-3 text-right text-text-muted">{line.qty} {line.unit}</td>
-                <td className="px-3 py-3 text-right text-text-muted">{fmt(line.rate)}</td>
-                <td className="px-3 py-3 text-right text-text-muted">{line.gstPct}%</td>
-                <td className="px-5 py-3 text-right text-text-primary font-medium">{fmt(line.total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <section className="px-5 py-5 sm:px-7" aria-labelledby="invoice-items-heading">
+        <h3 id="invoice-items-heading" className="mb-3 text-sm font-semibold text-text-primary">Items</h3>
+        <div className="divide-y divide-border border-y border-border-muted">
+          {lines.map((line, i) => (
+            <div key={i} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 py-4">
+              <div className="min-w-0">
+                <p className="break-words text-sm font-medium text-text-primary">{line.description}</p>
+                <p className="mt-1 text-xs text-text-secondary">
+                  {line.qty} {line.unit} at {fmt(line.rate)} each
+                </p>
+                <p className="mt-1 text-xs text-text-muted">GST {line.gstPct}% · {fmt(line.gst)}</p>
+              </div>
+              <p className="whitespace-nowrap text-right font-mono text-sm font-semibold tabular-nums text-text-primary">
+                {fmt(line.total)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      {/* Totals */}
-      <div className="px-5 py-4 border-t border-border flex flex-col items-end gap-1">
-        <div className="flex gap-8 text-sm text-text-muted">
+      <section className="ml-auto flex max-w-sm flex-col gap-2 px-5 pb-5 sm:px-7" aria-label="Invoice totals">
+        <div className="flex justify-between gap-6 text-sm text-text-secondary">
           <span>Subtotal</span>
-          <span>{fmt(grandSubtotal)}</span>
+          <span className="font-mono tabular-nums text-text-primary">{fmt(grandSubtotal)}</span>
         </div>
-        <div className="flex gap-8 text-sm text-text-muted">
+        <div className="flex justify-between gap-6 text-sm text-text-secondary">
           <span>GST</span>
-          <span>{fmt(grandGst)}</span>
+          <span className="font-mono tabular-nums text-text-primary">{fmt(grandGst)}</span>
         </div>
-        <div className="flex gap-8 text-base font-bold text-text-primary mt-1 pt-2 border-t border-border w-full justify-end">
+        <div className="mt-1 flex justify-between gap-6 border-t border-border pt-3 text-base font-bold text-text-primary">
           <span>Total</span>
-          <span className="text-brand-500">{fmt(grandTotal)}</span>
+          <span className="font-mono text-xl tabular-nums text-brand-500">{fmt(grandTotal)}</span>
         </div>
-      </div>
+      </section>
 
-      {/* Actions — wired in later milestones */}
-      <div className="px-5 py-4 border-t border-border flex gap-3">
+      <footer className="flex flex-col-reverse gap-3 border-t border-border px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
         <button
           disabled
           className="btn-secondary btn-sm"
@@ -90,7 +96,7 @@ export default function InvoicePreview({ invoice }) {
         >
           Send UPI Request
         </button>
-      </div>
-    </div>
+      </footer>
+    </article>
   )
 }

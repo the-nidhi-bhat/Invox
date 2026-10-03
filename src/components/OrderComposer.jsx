@@ -11,7 +11,7 @@ const EXAMPLE = 'bhaiya 50 mouse 450 wala, Acme Pune ko, 5% gst laga dena'
  *   onExtractionSuccess(result, message)  — called with ExtractionResult + original message
  *   onExtractionError(error)              — called on failure
  */
-export default function OrderComposer({ onExtractionStart, onExtractionSuccess, onExtractionError }) {
+export default function OrderComposer({ onExtractionStart, onExtractionSuccess, onExtractionError, disabled = false }) {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [fieldError, setFieldError] = useState('')
@@ -49,26 +49,31 @@ export default function OrderComposer({ onExtractionStart, onExtractionSuccess, 
     setFieldError('')
   }
 
+  const isDisabled = loading || disabled
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
-      {/* Textarea */}
-      <div className="relative">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate aria-busy={isDisabled}>
+      <div className="field-group">
+        <label htmlFor="order-message" className="label">Order message</label>
         <textarea
           id="order-message"
           name="order-message"
           className={[
-            'input min-h-[120px] resize-none',
+            'input min-h-[176px] resize-y leading-relaxed',
             fieldError && 'input-error',
           ].join(' ')}
-          placeholder='Paste a WhatsApp order — e.g. "50 mouse 450 each, Acme Pune, 5% GST"'
+          placeholder='For example: 50 mouse at ₹450 each, Acme in Pune, 5% GST'
           value={message}
           onChange={handleChange}
-          disabled={loading}
-          aria-describedby={fieldError ? 'order-error' : undefined}
+          disabled={isDisabled}
+          aria-describedby={fieldError ? 'order-hint order-error' : 'order-hint'}
           aria-invalid={!!fieldError}
           autoComplete="off"
-          spellCheck="false"
+          spellCheck="true"
         />
+        <p id="order-hint" className="text-xs leading-relaxed text-text-muted">
+          Paste a customer order in English or Hinglish. You can review every extracted detail before continuing.
+        </p>
       </div>
 
       {/* Validation error */}
@@ -79,20 +84,20 @@ export default function OrderComposer({ onExtractionStart, onExtractionSuccess, 
       )}
 
       {/* Footer row */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
         <button
           type="button"
           onClick={fillExample}
-          disabled={loading}
-          className="btn-ghost btn-sm text-xs"
+          disabled={isDisabled}
+          className="btn-ghost btn-sm whitespace-nowrap text-xs"
         >
           Use example order
         </button>
 
         <button
           type="submit"
-          disabled={loading || !message.trim()}
-          className="btn-primary btn-md"
+          disabled={isDisabled || !message.trim()}
+          className="btn-primary btn-md whitespace-nowrap sm:min-w-40"
         >
           {loading ? (
             <>

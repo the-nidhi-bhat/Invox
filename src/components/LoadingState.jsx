@@ -9,24 +9,23 @@ import React from 'react'
  */
 export default function LoadingState({ message }) {
   return (
-    <div className="card p-8 flex flex-col gap-5">
-      {/* Original message echo */}
+    <div className="card flex flex-col gap-5 p-5 sm:p-6" role="status" aria-live="polite">
       {message && (
-        <div className="bg-surface-elevated/60 rounded-xl px-4 py-3">
-          <p className="text-xs text-text-muted mb-1">Your order</p>
-          <p className="text-sm text-text-primary italic leading-relaxed">"{message}"</p>
+        <div className="rounded-xl border border-border-muted bg-surface px-4 py-3">
+          <p className="mb-1 text-xs font-medium text-text-muted">Order message</p>
+          <p className="break-words text-sm italic leading-relaxed text-text-secondary">“{message}”</p>
         </div>
       )}
 
-      {/* Spinner + status */}
-      <div className="flex flex-col items-center gap-4 py-6">
-        <div className="relative w-12 h-12" aria-hidden="true">
-          <div className="absolute inset-0 rounded-full border-2 border-border" />
-          <div className="absolute inset-0 rounded-full border-2 border-t-brand-500 animate-spin" />
+      <div className="flex flex-col gap-4 py-2">
+        <div>
+          <p className="text-sm font-semibold text-text-primary">Extracting order details</p>
+          <p className="mt-1 text-sm text-text-muted">Organizing the message for your review.</p>
         </div>
-        <div className="text-center">
-          <p className="text-sm font-medium text-text-primary">Preparing order details…</p>
-          <p className="text-xs text-text-muted mt-1">Structuring your message</p>
+        <div className="flex flex-col gap-3" aria-hidden="true">
+          <div className="h-3 w-2/3 animate-pulse rounded bg-surface-overlay" />
+          <div className="h-3 w-full animate-pulse rounded bg-surface-overlay" />
+          <div className="h-3 w-1/2 animate-pulse rounded bg-surface-overlay" />
         </div>
       </div>
     </div>
