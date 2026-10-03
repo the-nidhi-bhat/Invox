@@ -4,6 +4,18 @@
 
 @layer base {
   :root {
+    /* Light mode colors (default) */
+    --color-surface: #ffffff;
+    --color-surface-elevated: #f8fafc;
+    --color-surface-overlay: #f1f5f9;
+    --color-border: #e2e8f0;
+    --color-border-muted: #cbd5e1;
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94a3b8;
+  }
+
+  .dark {
     --color-surface: #0f172a;
     --color-surface-elevated: #1e293b;
     --color-surface-overlay: #334155;

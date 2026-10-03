@@ -1,15 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Header from './components/Header.jsx'
 import OrderComposer from './components/OrderComposer.jsx'
 import LoadingState from './components/LoadingState.jsx'
 import ExtractionReview from './components/ExtractionReview.jsx'
 import EmptyState from './components/EmptyState.jsx'
+import LandingPage from './components/LandingPage.jsx'
 
 /**
  * App — INVOX root component.
  *
  * UI state machine:
  *
+ *   'landing'         — landing page
  *   'idle'            — empty state, waiting for input
  *   'loading'         — extraction in progress (mock or future real API)
  *   'review'          — extraction complete, seller reviews/edits extracted fields
@@ -21,9 +23,10 @@ import EmptyState from './components/EmptyState.jsx'
  *   'error'           — extraction or calculation or generation failed
  *
  * M8 adds: invoice → UPI payment request → UPI
+ * M10 adds: landing page, theme support
  */
 export default function App() {
-  const [uiState, setUiState] = useState('idle')  // 'idle' | 'loading' | 'review' | 'calculating' | 'confirmed' | 'generating' | 'invoice' | 'upi' | 'error'
+  const [uiState, setUiState] = useState('landing')  // 'landing' | 'idle' | 'loading' | 'review' | 'calculating' | 'confirmed' | 'generating' | 'invoice' | 'upi' | 'error'
   const [submittedMessage, setSubmittedMessage] = useState('')
   const [extraction, setExtraction] = useState(null)
   const [extractionError, setExtractionError] = useState('')
@@ -34,6 +37,24 @@ export default function App() {
   const [invoiceError, setInvoiceError] = useState('')
   const [upi, setUpi] = useState(null)
   const [upiError, setUpiError] = useState('')
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme')
+      if (saved) return saved
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    }
+    return 'dark'
+  })
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('theme', theme)
+  }, [theme])
+
+  function handleEnterApp() {
+    setUiState('idle')
+  }
 
   function handleExtractionStart() {
     setUiState('loading')
@@ -626,43 +647,45 @@ case 'upi':
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface">
-      <Header />
+    <div className={`min-h-screen flex flex-col ${theme === 'dark' ? 'dark' : ''} bg-surface`}>
+      <Header onEnterApp={handleEnterApp} />
 
-      <main className="flex-1 flex flex-col lg:flex-row gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
-
-        {/* Left panel — Order input */}
-        <section className="flex flex-col gap-4 lg:w-1/2" aria-label="Order input">
-          <div className="card p-5 flex flex-col gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-text-primary">
-                New order
-              </h2>
-              <p className="text-xs text-text-muted mt-1 leading-relaxed">
-                Describe the order naturally — in English or Hinglish. INVOX will
-                extract the details for you to review.
-              </p>
+      {uiState === 'landing' ? (
+        <LandingPage onEnterApp={handleEnterApp} />
+      ) : (
+        <main className="flex-1 flex flex-col lg:flex-row gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+          {/* Left panel — Order input */}
+          <section className="flex flex-col gap-4 lg:w-1/2" aria-label="Order input">
+            <div className="card p-5 flex flex-col gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-text-primary">
+                  New order
+                </h2>
+                <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                  Describe the order naturally — in English or Hinglish. INVOX will
+                  extract the details for you to review.
+                </p>
+              </div>
+              <OrderComposer
+                onExtractionStart={() => {
+                  // Capture the message before it gets cleared
+                  handleExtractionStart()
+                }}
+                onExtractionSuccess={handleExtractionSuccess}
+                onExtractionError={handleExtractionError}
+              />
             </div>
-            <OrderComposer
-              onExtractionStart={() => {
-                // Capture the message before it gets cleared
-                handleExtractionStart()
-              }}
-              onExtractionSuccess={handleExtractionSuccess}
-              onExtractionError={handleExtractionError}
-            />
-          </div>
 
-          {/* Workflow indicator */}
-          <WorkflowSteps currentState={uiState} />
-        </section>
+            {/* Workflow indicator */}
+            <WorkflowSteps currentState={uiState} />
+          </section>
 
-        {/* Right panel — dynamic content */}
-        <section className="lg:w-1/2" aria-label="Extraction result and review">
-          {renderRightPanel()}
-        </section>
-
-      </main>
+          {/* Right panel — dynamic content */}
+          <section className="lg:w-1/2" aria-label="Extraction result and review">
+            {renderRightPanel()}
+          </section>
+        </main>
+      )}
     </div>
   )
 }

@@ -90,7 +90,7 @@ flowchart LR
     APIGW -->|"JSON"| FE
 ```
 
-> **Note:** The AWS backend (Lambda, API Gateway, Bedrock, DynamoDB) is planned and architecturally locked. The frontend foundation is implemented. Backend implementation begins in Milestone 2.
+**Note:** The AWS backend (Lambda, API Gateway, Bedrock, DynamoDB) is implemented and tested locally with mocks. No live AWS credentials or live deployment have been performed. The code is structured for deployment via AWS SAM + Antideploy.
 
 ---
 
@@ -131,53 +131,24 @@ The AI handles language. The seller handles judgment. The rules handle arithmeti
 
 ---
 
-## Features
-
-### Implemented (Milestone 1)
-
-- React + Vite + Tailwind CSS frontend foundation
-- Two-panel layout: order input on the left, invoice preview on the right
-- Order text input with example prompts
-- Invoice preview component: line items, per-item GST display, subtotal, GST total, grand total
-- Empty state and loading state in the UI
-- Mock invoice generation wired end-to-end (Bedrock replaced by a stub; real integration in Milestone 3)
-- `Edit Items` and `Send UPI Request` buttons present in UI (disabled; wired in later milestones)
-- Kiro engineering configuration: steering files, hooks, evidence system, `AGENTS.md`
-- Git history with one commit per milestone
-
-### Planned MVP
-
-- WhatsApp-style order input with message-history feel (Milestone 2)
-- Amazon Bedrock extraction with structured prompt and schema validation (Milestone 3)
-- Human review and edit experience for extracted data (Milestone 4)
-- Deterministic GST engine with intra-state/inter-state handling and mismatch flagging (Milestone 5)
-- Invoice generation (Milestone 6)
-- UPI payment request / QR code (Milestone 7)
-- DynamoDB persistence for verified invoices (Milestone 8)
-- Pytest backend test coverage, security hardening (Milestone 9)
-- Production deployment via Antideploy (Milestone 10)
-
----
-
-## Current Implementation Status
+## Final Implementation Status
 
 | Area | Status |
 |------|--------|
-| React + Vite frontend foundation | Implemented |
-| Tailwind CSS UI foundation | Implemented (M10 enhanced design system) |
-| Order input component | Implemented (M2 WhatsApp-style with mock extraction) |
-| Invoice preview component | Implemented (M6/M7 with M10 polish) |
-| Loading and empty states | Implemented (M10 polished) |
-| Kiro steering and evidence system | Implemented |
-| AWS SAM / Lambda backend | Implemented (M3-M9) |
-| API Gateway | Implemented (M3) |
-| Amazon Bedrock integration | Implemented (M3) |
-| Deterministic GST engine | Implemented (M5/M6) |
-| Human review/edit flow | Implemented (M4/M5) |
-| DynamoDB persistence | Implemented (M8/M9) |
-| UPI payment request | Implemented (M7/M8) |
-| Pytest backend tests | Implemented (212 tests passing) |
+| React + Vite + Tailwind frontend | Complete |
+| Order input (WhatsApp-style) | Complete (M2) |
+| AI extraction with mock/fallback | Complete (M3) |
+| Human review/edit of extraction | Complete (M4/M5) |
+| Deterministic GST engine | Complete (M5/M6) |
+| Invoice generation | Complete (M7) |
+| UPI payment request / QR | Complete (M8) |
+| DynamoDB persistence | Complete (M9) |
+| Light/dark theme | Complete (M10) |
+| Landing page | Complete (M10) |
+| Design system | Complete (M10) |
+| Pytest backend tests | 212 passing |
 | Production build | Verified |
+| AWS backend code | Complete (not live-deployed) |
 
 ---
 
@@ -186,15 +157,14 @@ The AI handles language. The seller handles judgment. The rules handle arithmeti
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 18, Vite 5, Tailwind CSS 3 |
-| Backend | Python, AWS Lambda |
+| Backend | Python 3.11, AWS Lambda |
 | API | Amazon API Gateway |
-| AI / NLP | Amazon Bedrock |
+| AI / NLP | Amazon Bedrock (Claude 3 Haiku/Sonnet) |
 | Database | Amazon DynamoDB |
 | Infrastructure | AWS SAM |
-| Testing | Pytest (backend), frontend testing (planned) |
-| IDE | Kiro |
-| AWS assistance | Amazon Q |
-| Deployment | Antideploy |
+| Testing | Pytest (backend, 212 tests passing) |
+| IDE | Kiro (early phase), OpenCode (later phase) |
+| Deployment | Antideploy (manual dashboard) |
 | Version control | Git + GitHub |
 
 ---
@@ -206,9 +176,9 @@ The AI handles language. The seller handles judgment. The rules handle arithmeti
 ```
 invox/
 ├── src/
-│   ├── App.jsx                   # Root layout (two-panel) — M10 polished
+│   ├── App.jsx                   # Root layout (two-panel)
 │   ├── main.jsx                  # React entry point
-│   ├── index.css                 # Tailwind base styles (M10 design system)
+│   ├── index.css                 # Tailwind base styles + design system
 │   └── components/
 │       ├── Header.jsx            # Top navigation
 │       ├── OrderComposer.jsx     # Order text input with example
@@ -248,7 +218,7 @@ invox/
 │   │   └── validators/               # Input validation
 │   │       ├── extract.py
 │   │       ├── gst.py
-│   │       ├── invoice.py
+│   │   ├── invoice.py
 │   │       └── upi.py
 │   ├── tests/                        # 212 tests passing
 │   │   ├── test_app.py
@@ -304,7 +274,7 @@ invox/
 
 ---
 
-## Example: Planned MVP Flow
+## Example: Implemented Flow
 
 **Input (what a seller types):**
 
@@ -312,7 +282,7 @@ invox/
 bhaiya 50 mouse 450 wala, Acme Pune ko, 5% gst laga dena
 ```
 
-**Planned AI extraction result (via Bedrock):**
+**AI extraction result (mock):**
 
 | Field | Extracted value |
 |-------|----------------|
@@ -323,9 +293,9 @@ bhaiya 50 mouse 450 wala, Acme Pune ko, 5% gst laga dena
 | Unit price | ₹450 |
 | Stated GST | 5% |
 
-**Planned deterministic validation:**
+**Deterministic validation:**
 
-The stated GST rate (5%) is compared against the applicable rate for the item category. If the configured rule returns 18% for computer peripherals, the system flags the mismatch visibly and applies 18% for the authoritative calculation. The seller sees the discrepancy before the invoice is generated.
+The stated GST rate (5%) is compared against the applicable rate for the item category. The configured rule returns 18% for computer peripherals, so the system flags the mismatch visibly and applies 18% for the authoritative calculation. The seller sees the discrepancy before the invoice is generated.
 
 **Authoritative calculation (server-side):**
 
@@ -333,11 +303,9 @@ The stated GST rate (5%) is compared against the applicable rate for the item ca
 |------|----------|-----------|-------|
 | Mouse × 50 @ ₹450 | ₹22,500 | ₹4,050 | ₹26,550 |
 
-> This example describes the **planned MVP flow**. The current implementation shows a mock invoice with hardcoded sample data. Real Bedrock extraction and GST validation are implemented in Milestones 3 and 5.
-
 ---
 
-## Data Flow (Planned)
+## Data Flow (Implemented)
 
 ```mermaid
 sequenceDiagram
@@ -374,52 +342,51 @@ sequenceDiagram
 
 ## Security and Financial Safety
 
-These are the intended controls for the MVP. Items marked _(planned)_ are not yet implemented.
-
 | Control | Status |
 |---------|--------|
-| AI output treated as untrusted / schema-validated | Planned |
-| Server-side authoritative invoice calculation | Planned |
-| Deterministic GST engine (AI cannot override) | Planned |
-| GST mismatches flagged visibly to seller | Planned |
-| Input validation on all API payloads | Planned |
+| AI output treated as untrusted / schema-validated | Implemented |
+| Server-side authoritative invoice calculation | Implemented |
+| Deterministic GST engine (AI cannot override) | Implemented |
+| GST mismatches flagged visibly to seller | Implemented |
+| Input validation on all API payloads | Implemented |
 | Secrets never committed to repository | Active |
 | `.env` and AWS credentials in `.gitignore` | Active |
-| Least-privilege IAM for Lambda | Planned |
-| API request-size limits and throttling | Planned |
-| CORS configured for production domain | Planned |
-| No sensitive internals exposed to users | Planned |
-| Simulated payment status explicitly labeled | Planned |
+| Least-privilege IAM for Lambda | Implemented (SAM template) |
+| API request-size limits and throttling | Implemented |
+| CORS configured | Implemented |
+| No sensitive internals exposed to users | Implemented |
+| Simulated payment status explicitly labeled | Implemented |
 | No direct browser access to Bedrock or DynamoDB | Architectural |
 
 ---
 
-## Testing Strategy (Planned)
+## Testing
 
-Backend testing via Pytest, prioritized by business risk:
+**Backend (Pytest):** 212 tests passing covering:
+- GST engine — intra-state, inter-state, mismatch detection, rounding, edge cases
+- Invoice calculation — multi-line, zero values, invalid inputs
+- Bedrock output schema validation — malformed/ambiguous responses
+- API input validation — negative quantities, malformed prices, missing fields
+- UPI request generation
+- DynamoDB persistence (mocked)
 
-1. GST engine — intra-state, inter-state, mismatch detection, rounding, edge cases
-2. Invoice total calculation — multi-line, zero values, invalid inputs
-3. Bedrock output schema validation — malformed/ambiguous responses
-4. API input validation — negative quantities, malformed prices, missing fields
-5. UPI request generation
-6. DynamoDB persistence
-
-Frontend testing covers key user workflows (Milestone 9).
+```bash
+cd backend && python -m pytest -v
+```
 
 ---
 
 ## Development Workflow
 
-Each milestone follows this lifecycle:
+Each milestone followed this lifecycle:
 
 1. **Understand** — inspect relevant files, identify risks and dependencies
-2. **Plan** — create a concise plan; use a Kiro spec for substantial features
+2. **Plan** — create a concise plan
 3. **Implement** — smallest correct solution; preserve working code
 4. **Verify** — run build/tests, check behavior
 5. **Review** — inspect `git diff` and `git status`, check for secrets
 6. **Commit** — one logical commit per milestone, conventional commit format
-7. **Push** — after Nidhi's approval only
+7. **Push** — after explicit approval
 8. **Stop** — wait for next milestone instruction
 
 No automatic commits, pushes, or deployments. Every Git action requires explicit approval.
@@ -431,18 +398,31 @@ No automatic commits, pushes, or deployments. Every Git action requires explicit
 | 1 | `818a505` | React + Vite + Tailwind scaffold + initial UI |
 | Config | `5ecde8c` | Kiro steering, hooks, evidence system, AGENTS.md |
 | Docs | `cfd6e73` | Project README |
+| 2 | `4884396` | ExtractionReview for multiple items, optional fields, human-edited tracking |
+| 3 | `6ecb4cb` | Bedrock integration with /extract endpoint |
+| 3 | `a869048` | Bedrock response parser with validation |
+| 3 | `aab3d31` | Bedrock extraction prompt for Hinglish orders |
+| 3 | `7ad4a54` | Bedrock extraction prompt schema |
+| 3 | `59ec4b4` | Bedrock runtime client module |
+| 4 | `95f8f4a` | Human review layer implementation |
+| 5 | `53de17e` | Deterministic GST engine with intra/inter-state, mismatch detection |
+| 6 | `8299b38` | GST calculation display on frontend |
+| 6 | `1683ccb` | Invoice generation layer |
+| 7 | `3b9b5fd` | UPI payment request layer |
+| 8 | `823e9fa` | DynamoDB persistence layer |
+| 10 | `1d45bd9` | UI polish, design system, documentation update |
 
 ---
 
-## Kiro, Amazon Q, and Antideploy
+## Tool Usage Attribution
 
-This project is built for the **CloudBuild AI Virtual Build-a-Thon**.
+This project was built using multiple tools:
 
 | Tool | Role |
 |------|------|
-| **Kiro** | Primary and exclusive coding IDE. Used for planning, spec creation, implementation, review, and verification across all milestones. |
+| **Kiro** | Primary coding IDE during early planning, specification, project configuration, and initial implementation phases. Kiro steering files (`.kiro/steering/`) enforce architecture, security, workflow, and UI/UX standards persistently. Evidence in `docs/kiro-evidence/`. |
+| **OpenCode** | Used for later implementation work after Kiro usage limits were reached. Evidence in `docs/opencode-evidence/`. |
 | **Amazon Q** | AWS-focused assistance: Lambda architecture, Bedrock prompt design, IAM policies, DynamoDB schema. |
-| **Antideploy** | Required deployment platform for this hackathon. An initial static deployment was used to verify connectivity during setup. Final INVOX deployment will be performed after the MVP is implemented and verified. |
 
 Kiro steering files (`.kiro/steering/`) are loaded into every session and enforce architecture, security, workflow, and UI/UX standards persistently without needing to re-explain them per session.
 
@@ -454,7 +434,7 @@ Kiro steering files (`.kiro/steering/`) are loaded into every session and enforc
 **Developer:** Nidhi Bhat  
 **GitHub:** [the-nidhi-bhat/Invox](https://github.com/the-nidhi-bhat/Invox)
 
-The project is built milestone by milestone with a genuine Git commit per milestone, using Kiro as the exclusive coding environment. Evidence of Kiro usage is maintained in `docs/kiro-evidence/`.
+The project is built milestone by milestone with a genuine Git commit per milestone. Evidence of tool usage is maintained in `docs/kiro-evidence/` and `docs/opencode-evidence/`.
 
 ---
 
@@ -464,6 +444,7 @@ The project is built milestone by milestone with a genuine Git commit per milest
 
 - Node.js 18+
 - npm 9+
+- Python 3.11+ (for backend)
 
 ### Frontend development
 
@@ -486,13 +467,18 @@ npm run preview
 
 ### Backend / AWS setup
 
-The Python Lambda backend uses AWS SAM and is introduced in later milestones. Backend setup instructions will be added as those milestones are implemented.
+```bash
+cd backend
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+python -m pytest -v
+```
 
 ### Environment variables
 
 No environment variables are required to run the current frontend in development mode.
 
-Future backend environment variables (planned):
+Backend environment variables (for AWS deployment):
 
 | Variable | Purpose |
 |----------|---------|
@@ -523,18 +509,11 @@ The goal is a focused, reliable, well-engineered MVP — not maximum feature cou
 
 ---
 
-## Project Status
+## Deployment Status
 
-**Active development — Milestone 1 complete. Backend not yet started.**
+**AWS backend:** Code complete, tested locally with mocks. AWS SAM template (`template.yaml`) defines the infrastructure (Lambda, API Gateway, DynamoDB, Bedrock permissions). Not live-deployed — no AWS credentials configured.
 
-| Item | Status |
-|------|--------|
-| Milestone 1 — Frontend foundation | Complete (`818a505`) |
-| Kiro configuration layer | Complete (`5ecde8c`) |
-| README | Complete (`cfd6e73`) |
-| Milestone 2 — WhatsApp-style order input | Not started |
-| Backend implementation (M2–M9) | Planned |
-| Production deployment via Antideploy | Planned (Milestone 10) |
+**Antideploy frontend:** `https://invox.antideploy.app` — deployment requires manual dashboard action. The Antideploy token is not available for automated deployment.
 
 ---
 

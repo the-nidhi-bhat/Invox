@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -21,7 +22,7 @@ export default {
         },
         // Semantic color aliases for consistent usage
         surface: {
-          DEFAULT: '#0f172a',      // gray-950
+          DEFAULT: '#0f172a',      // gray-950 (dark)
           elevated: '#1e293b',     // gray-800
           overlay: '#334155',      // gray-700
         },
