@@ -217,7 +217,7 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
           <p className="text-xs text-text-muted font-medium uppercase tracking-widest -mb-1">Items</p>
 
           {/* Items list */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {draft.items.map((item, idx) => (
               <ItemRow
                 key={idx}
@@ -237,7 +237,7 @@ export default function ExtractionReview({ originalMessage, extraction, onConfir
               <button
                 type="button"
                 onClick={handleAddItem}
-                className="w-full py-2 text-center text-xs text-brand-500 hover:text-brand-400 border border-dashed border-border rounded-lg transition"
+                className="w-full py-2.5 text-center text-sm text-brand-500 hover:text-brand-400 border border-dashed border-border rounded-lg transition font-medium"
               >
                 + Add another item
               </button>
@@ -297,7 +297,7 @@ function ItemRow({ index, item, errors, touched, humanEdited, onUpdate, onBlur, 
   const itemEdited = humanEdited[`items.${index}`] || {}
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 items-start">
+    <div className="card p-3 flex flex-col sm:flex-row gap-3 items-start">
       <div className="flex-1 min-w-0">
         <Field
           id={`item-name-${index}`}
@@ -321,6 +321,7 @@ function ItemRow({ index, item, errors, touched, humanEdited, onUpdate, onBlur, 
           placeholder="e.g. 50"
           inputMode="numeric"
           isEdited={itemEdited.quantity}
+          inputClassName="font-mono tabular-nums"
         />
         <Field
           id={`unit-price-${index}`}
@@ -332,6 +333,7 @@ function ItemRow({ index, item, errors, touched, humanEdited, onUpdate, onBlur, 
           placeholder="e.g. 450"
           inputMode="decimal"
           isEdited={itemEdited.unitPrice}
+          inputClassName="font-mono tabular-nums"
         />
       </div>
       {canRemove && (
@@ -351,7 +353,7 @@ function ItemRow({ index, item, errors, touched, humanEdited, onUpdate, onBlur, 
 /**
  * Field — reusable labelled input for the review form.
  */
-function Field({ id, label, value, error, onChange, onBlur, placeholder, inputMode, isEdited }) {
+function Field({ id, label, value, error, onChange, onBlur, placeholder, inputMode, isEdited, inputClassName }) {
   return (
     <div className="field-group">
       <label htmlFor={id} className="flex items-center gap-1 text-xs font-medium text-text-secondary">
@@ -375,6 +377,7 @@ function Field({ id, label, value, error, onChange, onBlur, placeholder, inputMo
         className={[
           'input',
           error && 'input-error',
+          inputClassName,
         ].join(' ')}
       />
       {error && (

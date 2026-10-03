@@ -9,22 +9,22 @@ export default function LandingPage({ onEnterApp }) {
     <div className="min-h-screen flex flex-col bg-surface">
       <Header onEnterApp={onEnterApp} />
       <main className="flex-1 flex flex-col">
-        {/* Hero Section */}
-        <section className="relative py-16 md:py-24 px-4 md:px-6">
+{/* Hero Section */}
+        <section className="relative py-14 md:py-20 px-4 md:px-6">
           <div className="max-w-4xl mx-auto text-center">
             <div className="animate-fade-in">
-              <h1 className="text-h1 font-bold text-text-primary tracking-tight mb-6">
+              <h1 className="text-h2 md:text-h1 font-bold text-text-primary tracking-tight mb-5">
                 Turn messy business messages into ready-to-review invoices
               </h1>
-              <p className="text-body-lg text-text-secondary max-w-2xl mx-auto mb-10">
+              <p className="text-body-lg text-text-secondary max-w-2xl mx-auto mb-8">
                 Type orders naturally in English or Hinglish. INVOX extracts the details, you review and confirm, deterministic GST does the math.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <button
                   onClick={onEnterApp}
                   className="btn-primary btn-lg w-full sm:w-auto"
                 >
-                  Try INVOX
+                  Open Workspace
                 </button>
                 <button
                   onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
@@ -35,13 +35,13 @@ export default function LandingPage({ onEnterApp }) {
               </div>
             </div>
 
-            {/* Small product preview */}
-            <div className="mt-16 animate-slide-up">
+            {/* Product preview - matches actual app output */}
+            <div className="mt-12 animate-slide-up">
               <div className="card overflow-hidden max-w-3xl mx-auto">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                   <div>
                     <p className="text-xs text-text-muted uppercase tracking-widest">Invoice</p>
-                    <p className="font-bold text-text-primary text-lg">INV-20240115-0001</p>
+                    <p className="font-bold text-text-primary text-lg font-mono">INV-20240115-0001</p>
                     <p className="text-xs text-text-muted mt-0.5">15 Jan 2024</p>
                   </div>
                   <span className="badge-warning">Pending</span>
@@ -58,61 +58,61 @@ export default function LandingPage({ onEnterApp }) {
                       </tr>
                     </thead>
                     <tbody>
-                        <tr className="border-b border-border/60 hover:bg-surface-overlay/30 transition">
-                          <td className="px-5 py-3 text-text-primary">Mouse</td>
-                          <td className="px-3 py-3 text-right text-text-muted">50</td>
-                          <td className="px-3 py-3 text-right text-text-muted">₹450.00</td>
-                          <td className="px-3 py-3 text-right text-text-muted">18%</td>
-                          <td className="px-5 py-3 text-right text-text-primary font-medium">₹26,550.00</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                      <tr className="border-b border-border/60">
+                        <td className="px-5 py-3 text-text-primary">Mouse</td>
+                        <td className="px-3 py-3 text-right text-text-muted font-mono tabular-nums">50</td>
+                        <td className="px-3 py-3 text-right text-text-muted font-mono tabular-nums">₹450.00</td>
+                        <td className="px-3 py-3 text-right text-text-muted font-mono tabular-nums">18%</td>
+                        <td className="px-5 py-3 text-right text-text-primary font-medium font-mono tabular-nums">₹26,550.00</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-5 py-4 border-t border-border flex flex-col items-end gap-1">
+                  <div className="flex gap-8 text-sm text-text-muted">
+                    <span>Subtotal</span>
+                    <span className="font-mono tabular-nums">₹22,500.00</span>
                   </div>
-                  <div className="px-5 py-4 border-t border-border flex flex-col items-end gap-1">
-                    <div className="flex gap-8 text-sm text-text-muted">
-                      <span>Subtotal</span>
-                      <span>₹22,500.00</span>
-                    </div>
-                    <div className="flex gap-8 text-sm text-text-muted">
-                      <span>GST</span>
-                      <span>₹4,050.00</span>
-                    </div>
-                    <div className="flex gap-8 text-base font-bold text-text-primary mt-1 pt-2 border-t border-border w-full justify-end">
-                      <span>Total</span>
-                      <span className="text-brand-500">₹26,550.00</span>
-                    </div>
+                  <div className="flex gap-8 text-sm text-text-muted">
+                    <span>GST (18%)</span>
+                    <span className="font-mono tabular-nums">₹4,050.00</span>
+                  </div>
+                  <div className="flex gap-8 text-base font-bold text-text-primary mt-1 pt-2 border-t border-border w-full justify-end">
+                    <span>Total</span>
+                    <span className="text-brand-500 font-mono tabular-nums">₹26,550.00</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
         </section>
 
         {/* Product Principle */}
-        <section id="principle" className="py-16 px-4 md:px-6 bg-surface-elevated/30">
+        <section id="principle" className="py-12 px-4 md:px-6 bg-surface-elevated/30">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-500/10 text-brand-500 border border-brand-500/20 mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 text-brand-500 border border-brand-500/20 mb-4">
               <span className="text-xs font-semibold uppercase tracking-wider">Core Principle</span>
             </div>
-            <h2 className="text-h2 font-bold text-text-primary mb-4">
+            <h2 className="text-h3 font-bold text-text-primary mb-3">
               AI proposes. Rules decide. You stay in control.
             </h2>
-            <p className="text-body-lg text-text-secondary max-w-2xl mx-auto">
+            <p className="text-body text-text-secondary max-w-2xl mx-auto">
               AI extracts intent from messy messages. Deterministic rules calculate GST and totals. You review, edit, and approve — nothing ships without your sign-off.
             </p>
           </div>
         </section>
 
         {/* How It Works */}
-        <section id="how-it-works" className="py-16 md:py-24 px-4 md:px-6">
+        <section id="how-it-works" className="py-14 md:py-20 px-4 md:px-6">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-h2 font-bold text-text-primary mb-4">How it works</h2>
-              <p className="text-body-lg text-text-secondary max-w-2xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-h3 font-bold text-text-primary mb-3">How it works</h2>
+              <p className="text-body text-text-secondary max-w-2xl mx-auto">
                 Four steps from messy message to payment request
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5 md:gap-6">
               <StepCard
                 number="01"
                 title="Message"
@@ -141,30 +141,30 @@ export default function LandingPage({ onEnterApp }) {
           </div>
         </section>
 
-        {/* Trust / Engineering Principles */}
-        <section className="py-16 md:py-24 px-4 md:px-6 bg-surface-elevated/30">
+        {/* Trust / Engineering Principles - concise */}
+        <section className="py-14 md:py-20 px-4 md:px-6 bg-surface-elevated/30">
           <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-h2 font-bold text-text-primary mb-4">Built for trust</h2>
-              <p className="text-body-lg text-text-secondary max-w-2xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-h3 font-bold text-text-primary mb-3">Built for trust</h2>
+              <p className="text-body text-text-secondary max-w-2xl mx-auto">
                 Engineering choices that put you in control of every rupee
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               <PrincipleCard
                 icon={<HumanIcon />}
-                title="Human review before invoice"
+                title="Human review first"
                 description="Nothing ships without your explicit confirmation. Every extracted field is editable."
               />
               <PrincipleCard
                 icon={<ShieldIcon />}
-                title="Deterministic GST calculations"
+                title="Deterministic GST"
                 description="AI never calculates tax. Rules engine applies correct rates by category and jurisdiction."
               />
               <PrincipleCard
                 icon={<ServerIcon />}
-                title="Server-side financial authority"
+                title="Server-side authority"
                 description="Totals calculated on the backend. Client and AI outputs are never trusted for financials."
               />
               <PrincipleCard
@@ -174,7 +174,7 @@ export default function LandingPage({ onEnterApp }) {
               />
               <PrincipleCard
                 icon={<LockIcon />}
-                title="No fake payment integration"
+                title="No fake payments"
                 description="UPI deep links and QR codes only. No payment gateway pretending to process real money."
               />
               <PrincipleCard
@@ -187,10 +187,10 @@ export default function LandingPage({ onEnterApp }) {
         </section>
 
         {/* Final CTA */}
-        <section className="py-16 md:py-24 px-4 md:px-6">
+        <section className="py-14 md:py-20 px-4 md:px-6">
           <div className="max-w-xl mx-auto text-center">
-            <h2 className="text-h2 font-bold text-text-primary mb-6">Ready to create your first invoice?</h2>
-            <p className="text-body-lg text-text-secondary mb-10">
+            <h2 className="text-h3 font-bold text-text-primary mb-5">Ready to create your first invoice?</h2>
+            <p className="text-body text-text-secondary mb-8">
               No signup required. No credit card. Just type your order and go.
             </p>
             <button

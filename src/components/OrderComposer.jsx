@@ -51,11 +51,6 @@ export default function OrderComposer({ onExtractionStart, onExtractionSuccess, 
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3" noValidate>
-      {/* Label */}
-      <label htmlFor="order-message" className="sr-only">
-        Order message
-      </label>
-
       {/* Textarea */}
       <div className="relative">
         <textarea
@@ -65,7 +60,7 @@ export default function OrderComposer({ onExtractionStart, onExtractionSuccess, 
             'input min-h-[120px] resize-none',
             fieldError && 'input-error',
           ].join(' ')}
-          placeholder={'Type or paste your order — e.g. "bhaiya 50 mouse 450 wala, Acme Pune ko, 5% gst laga dena"'}
+          placeholder='Paste a WhatsApp order — e.g. "50 mouse 450 each, Acme Pune, 5% GST"'
           value={message}
           onChange={handleChange}
           disabled={loading}
@@ -89,9 +84,7 @@ export default function OrderComposer({ onExtractionStart, onExtractionSuccess, 
           type="button"
           onClick={fillExample}
           disabled={loading}
-          className="text-xs text-text-muted hover:text-brand-500 underline underline-offset-2
-                     transition disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none
-                     focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+          className="btn-ghost btn-sm text-xs"
         >
           Use example order
         </button>
